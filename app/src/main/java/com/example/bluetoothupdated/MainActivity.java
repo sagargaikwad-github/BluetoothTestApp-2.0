@@ -17,6 +17,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -39,27 +43,31 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener , View.OnClickListener, SensorEventListener {
     LinearLayout clientLL;
     LinearLayout serverLL;
 
 
+    private SensorManager senseManage;
+    private Sensor envSense;
+
     Spinner spinner;
     String[] DeviceName = {"Select Device", "A", "B", "C"};
-    Button serverStartBTN, clientStartBTN, fourthDeviceBTN;
+    Button serverStartBTN, clientStartBTN, fourthDeviceClientBTN,fourthDeviceServerBTN;
     private static final String APP_NAME = "Bluetooth App";
     private static final java.util.UUID UUID4th = java.util.UUID.fromString("9bbb4aaa-c772-4e30-853a-e6a64f5e30f3");
     BluetoothAdapter bluetoothAdapter;
 
-     TextView statusOfBluetooth, CounterTV, CounterTVB, CounterTVC;
-     TextView fourthDeviceTV;
+    TextView statusOfBluetooth, CounterTV, CounterTVB, CounterTVC;
+    TextView fourthDeviceTV,countAllData;
 
     int Time = 50;
     int TimeB = 500;
     int TimeC = 50000;
+
     int seconds = 0;
-     String DevName;
-     CountDownTimer countDownTimer;
+    String DevName;
+    CountDownTimer countDownTimer;
     BluetoothDevice[] paired_device_array;
 
 
@@ -67,13 +75,26 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     String ThreadName = null;
     final int STATE_CONNECTING = 1;
-    final int STATE_CONNECTING_A = 11;
-    final int STATE_CONNECTED = 3;
-    final int STATE_CONNECTED_A = 13;
-    final int STATE_CONNECTION_FAILED = 4;
-    final int STATE_BLUETOOTH_OFF = 5;
-    final int STATE_MESSAGE_RECIEVED_FROM_A = 7;
-    final int STATE_CONNECTION_FAILED_CLIENT_A = 9;
+    final int STATE_CONNECTING_A = 2;
+    final int STATE_CONNECTING_B = 3;
+    final int STATE_CONNECTING_C = 4;
+
+    final int STATE_CONNECTED = 11;
+    final int STATE_CONNECTED_A = 12;
+    final int STATE_CONNECTED_B = 13;
+    final int STATE_CONNECTED_C = 14;
+
+    final int STATE_CONNECTION_FAILED = 21;
+    final int STATE_BLUETOOTH_OFF = 23;
+
+    final int STATE_MESSAGE_RECIEVED_FROM_A = 31;
+    final int STATE_MESSAGE_RECIEVED_FROM_B = 32;
+    final int STATE_MESSAGE_RECIEVED_FROM_C = 33;
+    final int STATE_MESSAGE_RECIEVED_FROM_4TH_DEVICE = 34;
+
+    final int STATE_CONNECTION_FAILED_CLIENT_A = 41;
+    final int STATE_CONNECTION_FAILED_CLIENT_B = 42;
+    final int STATE_CONNECTION_FAILED_CLIENT_C = 43;
 
 
     TextView DeviceAStatus, DeviceACounter;
@@ -98,12 +119,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     static String DeviceBName;
     static String DeviceCName;
 
-    SendReceieve sendReceieveA;
+    SendReceieveA sendReceieveA;
+    SendReceieveB sendReceieveB;
+    SendReceieveC sendReceieveC;
+
+    SendReceieve4thDevice sendReceieve4thDevice;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        senseManage = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+
+
 
 
         clientLL = findViewById(R.id.clientLL);
@@ -116,12 +146,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         statusOfBluetooth = findViewById(R.id.statusOfBluetooth);
         CounterTV = findViewById(R.id.counterTV);
 
-        fourthDeviceBTN = findViewById(R.id.fourthDeviceBTN);
+        fourthDeviceClientBTN = findViewById(R.id.fourthDeviceClientBTN);
+        fourthDeviceServerBTN = findViewById(R.id.fourthDeviceServerBTN);
         fourthDeviceTV = findViewById(R.id.fourthDeviceTV);
 
         CounterTVB = findViewById(R.id.counterTVB);
         CounterTVC = findViewById(R.id.counterTVC);
 
+
+        countAllData=findViewById(R.id.countAllData);
 
         DeviceA = findViewById(R.id.deviceA);
         DeviceB = findViewById(R.id.deviceB);
@@ -148,7 +181,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
 
         checkBluetoothIsOn();
-        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        //IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         //registerReceiver(mReceiver, filter);
     }
 
@@ -176,12 +209,59 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }.start();
     }
 
+    private void coundownTimerB() {
+        countDownTimer = new CountDownTimer(TimeB * 1000, 1000) {
+            @Override
+            public void onTick(long l) {
+                seconds = (int) (l / 1000);
+                try {
+                    CounterTVB.setText(String.valueOf(seconds));
+
+                    sendReceieveB.write(CounterTVB.getText().toString().getBytes());
+
+                } catch (Exception e) {
+                    Message message = Message.obtain();
+                    message.what = STATE_CONNECTING_B;
+                    handler.sendMessage(message);
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                coundownTimerB();
+            }
+        }.start();
+    }
+
+    private void coundownTimerC() {
+        countDownTimer = new CountDownTimer(TimeC * 1000, 1000) {
+            @Override
+            public void onTick(long l) {
+                seconds = (int) (l / 1000);
+                try {
+                    CounterTVC.setText(String.valueOf(seconds));
+
+                    sendReceieveC.write(CounterTVC.getText().toString().getBytes());
+
+                } catch (Exception e) {
+                    Message message = Message.obtain();
+                    message.what = STATE_CONNECTING_C;
+                    handler.sendMessage(message);
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                coundownTimerC();
+            }
+        }.start();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         ArrayAdapter arrayAdapter = new ArrayAdapter(this, com.google.android.material.R.layout.support_simple_spinner_dropdown_item, DeviceName);
         spinner.setAdapter(arrayAdapter);
-
 
         serverStartBTN.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -206,6 +286,39 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         });
 
 
+        handlerCountData();
+
+    }
+
+    public  void handlerCountData(){
+        Thread thread= new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if(CountOfDeviceA!=-1 && CountOfDeviceB!=-1 && CountOfDeviceC!=-1)
+                {
+                    int add=CountOfDeviceA+CountOfDeviceB+CountOfDeviceC;
+
+                    try {
+                        countAllData.setText(String.valueOf(add));
+                        sendReceieve4thDevice.write(String.valueOf(add).getBytes());
+                    }
+                    catch (Exception e)
+                    {
+
+                    }
+                }
+                else
+                {
+                    countAllData.setText("All Devices Not Connected");
+                }
+            }
+        });
+        thread.start();
+//
+//        try {
+//            Thread.sleep(1);
+//        } catch (InterruptedException e) {}
+        thread.interrupt();
     }
 
     private void startServer(String servername) {
@@ -222,6 +335,24 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 coundownTimerA();
             }
+            if (servername == "B") {
+                ServerClassB serverClassB = new ServerClassB();
+                serverClassB.start();
+                CounterTV.setVisibility(View.GONE);
+                CounterTVB.setVisibility(View.VISIBLE);
+                CounterTVC.setVisibility(View.GONE);
+
+                coundownTimerB();
+            }
+            if (servername == "C") {
+                ServerClassC serverClassC = new ServerClassC();
+                serverClassC.start();
+                CounterTV.setVisibility(View.GONE);
+                CounterTVB.setVisibility(View.GONE);
+                CounterTVC.setVisibility(View.VISIBLE);
+
+                coundownTimerC();
+            }
         }
 
     }
@@ -237,28 +368,74 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 case STATE_CONNECTING_A:
                     DeviceAStatus.setText("Connecting...");
                     break;
+                case STATE_CONNECTING_B:
+                    DeviceBStatus.setText("Connecting...");
+                    break;
+                case STATE_CONNECTING_C:
+                    DeviceCStatus.setText("Connecting...");
+                    break;
+
                 case STATE_CONNECTED:
                     statusOfBluetooth.setText("Connected To : " + DevName);
                     break;
+
                 case STATE_CONNECTED_A:
                     DeviceAStatus.setText("Connected To : " + DevName);
                     break;
+                case STATE_CONNECTED_B:
+                    DeviceBStatus.setText("Connected To : " + DevName);
+                    break;
+                case STATE_CONNECTED_C:
+                    DeviceCStatus.setText("Connected To : " + DevName);
+                    break;
+
                 case STATE_CONNECTION_FAILED:
                     statusOfBluetooth.setText("Connection Failed");
                     CounterTV.setVisibility(View.GONE);
+                    CounterTVB.setVisibility(View.GONE);
+                    CounterTVC.setVisibility(View.GONE);
                     break;
+
                 case STATE_CONNECTION_FAILED_CLIENT_A:
                     DeviceAStatus.setText("Connection Failed");
                     break;
+                case STATE_CONNECTION_FAILED_CLIENT_B:
+                    DeviceBStatus.setText("Connection Failed");
+                    break;
+                case STATE_CONNECTION_FAILED_CLIENT_C:
+                    DeviceCStatus.setText("Connection Failed");
+                    break;
+
                 case STATE_BLUETOOTH_OFF:
                     statusOfBluetooth.setText("Bluetooth is Off, Please Turned on");
                     countDownTimer.cancel();
                     break;
+
                 case STATE_MESSAGE_RECIEVED_FROM_A:
                     byte[] readBuffA = (byte[]) message.obj;
                     String tempMsgA = new String(readBuffA, 0, message.arg1);
                     DeviceACounter.setText(tempMsgA);
                     CountOfDeviceA = Integer.parseInt(DeviceACounter.getText().toString());
+                    break;
+
+                case STATE_MESSAGE_RECIEVED_FROM_B:
+                    byte[] readBuffB = (byte[]) message.obj;
+                    String tempMsgB = new String(readBuffB, 0, message.arg1);
+                    DeviceBCounter.setText(tempMsgB);
+                    CountOfDeviceB = Integer.parseInt(DeviceBCounter.getText().toString());
+                    break;
+
+                case STATE_MESSAGE_RECIEVED_FROM_C:
+                    byte[] readBuffC = (byte[]) message.obj;
+                    String tempMsgC = new String(readBuffC, 0, message.arg1);
+                    DeviceCCounter.setText(tempMsgC);
+                    CountOfDeviceC = Integer.parseInt(DeviceCCounter.getText().toString());
+                    break;
+
+                case STATE_MESSAGE_RECIEVED_FROM_4TH_DEVICE:
+                    byte[] readBuffD = (byte[]) message.obj;
+                    String tempMsgD = new String(readBuffD, 0, message.arg1);
+                    fourthDeviceTV.setText(tempMsgD);
                     break;
 
             }
@@ -273,7 +450,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             startActivityForResult(intent, 100);
         }
     }
-
 
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -332,7 +508,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         Time = 0;
         TimeB = 0;
         TimeC = 0;
-       // unregisterReceiver(mReceiver);
+        // unregisterReceiver(mReceiver);
     }
 
     private void startDevice() {
@@ -377,6 +553,112 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }
         });
+        DeviceB.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("MissingPermission")
+            @Override
+            public void onClick(View view) {
+                if (!bluetoothAdapter.isEnabled()) {
+                    Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(intent, 100);
+                } else {
+                    @SuppressLint("MissingPermission") Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+                    String[] strings = new String[pairedDevices.size()];
+                    paired_device_array = new BluetoothDevice[pairedDevices.size()];
+                    int i = 0;
+
+                    if (pairedDevices.size() > 0) {
+                        for (BluetoothDevice device : pairedDevices) {
+                            paired_device_array[i] = device;
+                            strings[i] = device.getName();
+                            i++;
+                        }
+                        arrayAdapter = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, strings);
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setTitle("Choose Device A");
+                        builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int item) {
+                                try {
+                                    sendReceieveB.cancel();
+                                } catch (Exception e) {
+
+                                }
+                                ClientBClass connectThreadB = new ClientBClass(paired_device_array[item]);
+                                connectThreadB.start();
+                            }
+                        });
+                        AlertDialog alert = builder.create();
+                        alert.show();
+
+                    }
+
+                }
+            }
+        });
+        DeviceC.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("MissingPermission")
+            @Override
+            public void onClick(View view) {
+                if (!bluetoothAdapter.isEnabled()) {
+                    Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(intent, 100);
+                } else {
+                    @SuppressLint("MissingPermission") Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+                    String[] strings = new String[pairedDevices.size()];
+                    paired_device_array = new BluetoothDevice[pairedDevices.size()];
+                    int i = 0;
+
+                    if (pairedDevices.size() > 0) {
+                        for (BluetoothDevice device : pairedDevices) {
+                            paired_device_array[i] = device;
+                            strings[i] = device.getName();
+                            i++;
+                        }
+                        arrayAdapter = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, strings);
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setTitle("Choose Device A");
+                        builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int item) {
+                                try {
+                                    sendReceieveC.cancel();
+                                } catch (Exception e) {
+
+                                }
+                                ClientCClass connectThreadC = new ClientCClass(paired_device_array[item]);
+                                connectThreadC.start();
+                            }
+                        });
+                        AlertDialog alert = builder.create();
+                        alert.show();
+
+                    }
+
+                }
+            }
+        });
+
+
+        fourthDeviceServerBTN.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Server4thDevice server4thDevice = new Server4thDevice();
+                server4thDevice.start();
+            }
+        });
+
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+
+    }
+
+    @Override
+    public void onClick(View view) {
 
     }
 
@@ -418,7 +700,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     message.what = STATE_CONNECTED;
                     handler.sendMessage(message);
 
-                    sendReceieveA = new SendReceieve(socket);
+                    sendReceieveA = new SendReceieveA(socket);
                     sendReceieveA.start();
 
                     try {
@@ -431,7 +713,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     }
-
     private class ClientAClass extends Thread {
         private BluetoothDevice device;
         private BluetoothSocket socket;
@@ -441,11 +722,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             device = device1;
             try {
                 if (bluetoothAdapter.isEnabled()) {
-                    for (int i = 0; i < uuidList.size(); i++) {
-                        socket = device.createRfcommSocketToServiceRecord(uuidList.get(i));
+                    // for (int i = 0; i < uuidList.size(); i++) {
+                    socket = device.createRfcommSocketToServiceRecord(uuidList.get(0));
 
-                        return;
-                    }
+                    return;
+                    // }
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -468,7 +749,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 DeviceAName = socket.getRemoteDevice().getName();
 
-                SendReceieve sendRecieveA = new SendReceieve(socket);
+                SendReceieveA sendRecieveA = new SendReceieveA(socket);
                 sendRecieveA.start();
 
             } catch (IOException e) {
@@ -485,14 +766,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
     }
-
-    public class SendReceieve extends Thread {
+    public class SendReceieveA extends Thread {
 
         private final BluetoothSocket bluetoothSocket;
         private final InputStream inputStream;
         private final OutputStream outputStream;
 
-        public SendReceieve(BluetoothSocket socket) {
+        public SendReceieveA(BluetoothSocket socket) {
             bluetoothSocket = socket;
             InputStream tempIn = null;
             OutputStream tempOut = null;
@@ -524,6 +804,510 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     Message message2 = Message.obtain();
                     message2.what = STATE_CONNECTION_FAILED;
                     handler.sendMessage(message2);
+                    break;
+                }
+            }
+        }
+
+        public void write(byte[] bytes) {
+            try {
+                outputStream.write(bytes);
+            } catch (IOException e) {
+                e.printStackTrace();
+                cancel();
+            }
+        }
+
+        public void cancel() {
+            try {
+                inputStream.close();
+                outputStream.close();
+                bluetoothSocket.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Could not close the connect socket", e);
+            }
+
+        }
+    }
+
+
+    public class ServerClassB extends Thread {
+        @SuppressLint("MissingPermission")
+        public ServerClassB() {
+            try {
+                serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(APP_NAME, uuidList.get(1));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        public void run() {
+            BluetoothSocket socket = null;
+            while (socket == null) {
+                try {
+                    Message message1 = Message.obtain();
+                    message1.what = STATE_CONNECTING;
+                    handler.sendMessage(message1);
+
+                    socket = serverSocket.accept();
+
+                    DevName = socket.getRemoteDevice().getName();
+
+                    serverSocket.close();
+
+                } catch (IOException e) {
+                    Message message2 = Message.obtain();
+                    message2.what = STATE_CONNECTION_FAILED;
+                    handler.sendMessage(message2);
+                }
+
+                if (socket != null) {
+
+                    Message message = Message.obtain();
+                    message.what = STATE_CONNECTED;
+                    handler.sendMessage(message);
+
+                    sendReceieveB = new SendReceieveB(socket);
+                    sendReceieveB.start();
+
+                    try {
+                        serverSocket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    private class ClientBClass extends Thread {
+        private BluetoothDevice device;
+        private BluetoothSocket socket;
+
+        @SuppressLint("MissingPermission")
+        public ClientBClass(BluetoothDevice device1) {
+            device = device1;
+            try {
+                if (bluetoothAdapter.isEnabled()) {
+                    // for (int i = 0; i < uuidList.size(); i++) {
+                    socket = device.createRfcommSocketToServiceRecord(uuidList.get(1));
+
+                    return;
+                    // }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        public void run() {
+            bluetoothAdapter.cancelDiscovery();
+            try {
+                Message connecting = Message.obtain();
+                connecting.what = STATE_CONNECTING_B;
+                handler.sendMessage(connecting);
+
+                socket.connect();
+
+                Message message = Message.obtain();
+                message.what = STATE_CONNECTED_B;
+                handler.sendMessage(message);
+
+                DeviceAName = socket.getRemoteDevice().getName();
+
+                SendReceieveB sendRecieveB = new SendReceieveB(socket);
+                sendRecieveB.start();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                try {
+                    socket.close();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                Message message = Message.obtain();
+                message.what = STATE_CONNECTION_FAILED_CLIENT_B;
+                handler.sendMessage(message);
+            }
+        }
+
+    }
+    public class SendReceieveB extends Thread {
+
+        private final BluetoothSocket bluetoothSocket;
+        private final InputStream inputStream;
+        private final OutputStream outputStream;
+
+        public SendReceieveB(BluetoothSocket socket) {
+            bluetoothSocket = socket;
+            InputStream tempIn = null;
+            OutputStream tempOut = null;
+
+            try {
+                tempIn = bluetoothSocket.getInputStream();
+                tempOut = bluetoothSocket.getOutputStream();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            inputStream = tempIn;
+            outputStream = tempOut;
+        }
+
+        public void run() {
+            byte[] buffer = new byte[1024];
+            int bytes;
+
+            while (true) {
+                try {
+                    bytes = inputStream.read(buffer);
+                    handler.obtainMessage(STATE_MESSAGE_RECIEVED_FROM_B, bytes, -1, buffer).sendToTarget();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Message message1 = Message.obtain();
+                    message1.what = STATE_CONNECTION_FAILED_CLIENT_B;
+                    handler.sendMessage(message1);
+
+                    Message message2 = Message.obtain();
+                    message2.what = STATE_CONNECTION_FAILED;
+                    handler.sendMessage(message2);
+                    break;
+                }
+            }
+        }
+
+        public void write(byte[] bytes) {
+            try {
+                outputStream.write(bytes);
+            } catch (IOException e) {
+                e.printStackTrace();
+                cancel();
+            }
+        }
+
+        public void cancel() {
+            try {
+                inputStream.close();
+                outputStream.close();
+                bluetoothSocket.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Could not close the connect socket", e);
+            }
+
+        }
+    }
+
+
+    public class ServerClassC extends Thread {
+        @SuppressLint("MissingPermission")
+        public ServerClassC() {
+            try {
+                serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(APP_NAME, uuidList.get(2));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        public void run() {
+            BluetoothSocket socket = null;
+            while (socket == null) {
+                try {
+                    Message message1 = Message.obtain();
+                    message1.what = STATE_CONNECTING;
+                    handler.sendMessage(message1);
+
+                    socket = serverSocket.accept();
+
+                    DevName = socket.getRemoteDevice().getName();
+
+                    serverSocket.close();
+
+                } catch (IOException e) {
+                    Message message2 = Message.obtain();
+                    message2.what = STATE_CONNECTION_FAILED;
+                    handler.sendMessage(message2);
+                }
+
+                if (socket != null) {
+
+                    Message message = Message.obtain();
+                    message.what = STATE_CONNECTED;
+                    handler.sendMessage(message);
+
+                    sendReceieveC = new SendReceieveC(socket);
+                    sendReceieveC.start();
+
+                    try {
+                        serverSocket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    private class ClientCClass extends Thread {
+        private BluetoothDevice device;
+        private BluetoothSocket socket;
+
+        @SuppressLint("MissingPermission")
+        public ClientCClass(BluetoothDevice device1) {
+            device = device1;
+            try {
+                if (bluetoothAdapter.isEnabled()) {
+                    // for (int i = 0; i < uuidList.size(); i++) {
+                    socket = device.createRfcommSocketToServiceRecord(uuidList.get(2));
+
+                    return;
+                    // }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        public void run() {
+            bluetoothAdapter.cancelDiscovery();
+            try {
+                Message connecting = Message.obtain();
+                connecting.what = STATE_CONNECTING_C;
+                handler.sendMessage(connecting);
+
+                socket.connect();
+
+                Message message = Message.obtain();
+                message.what = STATE_CONNECTED_C;
+                handler.sendMessage(message);
+
+                DeviceAName = socket.getRemoteDevice().getName();
+
+                SendReceieveC sendRecieveC = new SendReceieveC(socket);
+                sendRecieveC.start();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                try {
+                    socket.close();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                Message message = Message.obtain();
+                message.what = STATE_CONNECTION_FAILED_CLIENT_C;
+                handler.sendMessage(message);
+            }
+        }
+
+    }
+    public class SendReceieveC extends Thread {
+
+        private final BluetoothSocket bluetoothSocket;
+        private final InputStream inputStream;
+        private final OutputStream outputStream;
+
+        public SendReceieveC(BluetoothSocket socket) {
+            bluetoothSocket = socket;
+            InputStream tempIn = null;
+            OutputStream tempOut = null;
+
+            try {
+                tempIn = bluetoothSocket.getInputStream();
+                tempOut = bluetoothSocket.getOutputStream();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            inputStream = tempIn;
+            outputStream = tempOut;
+        }
+
+        public void run() {
+            byte[] buffer = new byte[1024];
+            int bytes;
+
+            while (true) {
+                try {
+                    bytes = inputStream.read(buffer);
+                    handler.obtainMessage(STATE_MESSAGE_RECIEVED_FROM_C, bytes, -1, buffer).sendToTarget();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Message message1 = Message.obtain();
+                    message1.what = STATE_CONNECTION_FAILED_CLIENT_C;
+                    handler.sendMessage(message1);
+
+                    Message message2 = Message.obtain();
+                    message2.what = STATE_CONNECTION_FAILED;
+                    handler.sendMessage(message2);
+                    break;
+                }
+            }
+        }
+
+        public void write(byte[] bytes) {
+            try {
+                outputStream.write(bytes);
+            } catch (IOException e) {
+                e.printStackTrace();
+                cancel();
+            }
+        }
+
+        public void cancel() {
+            try {
+                inputStream.close();
+                outputStream.close();
+                bluetoothSocket.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Could not close the connect socket", e);
+            }
+
+        }
+    }
+
+
+    public class Server4thDevice extends Thread {
+        @SuppressLint("MissingPermission")
+        public Server4thDevice() {
+            try {
+                serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(APP_NAME, uuidList.get(3));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        public void run() {
+            BluetoothSocket socket = null;
+            while (socket == null) {
+                try {
+//                    Message message1 = Message.obtain();
+//                    message1.what = STATE_CONNECTING;
+//                    handler.sendMessage(message1);
+
+                    socket = serverSocket.accept();
+
+                    DevName = socket.getRemoteDevice().getName();
+
+                    serverSocket.close();
+
+                } catch (IOException e) {
+//                    Message message2 = Message.obtain();
+//                    message2.what = STATE_CONNECTION_FAILED;
+//                    handler.sendMessage(message2);
+                }
+
+                if (socket != null) {
+
+//                    Message message = Message.obtain();
+//                    message.what = STATE_CONNECTED;
+//                    handler.sendMessage(message);
+
+                    sendReceieve4thDevice = new SendReceieve4thDevice(socket);
+                    sendReceieve4thDevice.start();
+
+                    try {
+                        serverSocket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    private class Client4thDevice extends Thread {
+        private BluetoothDevice device;
+        private BluetoothSocket socket;
+
+        @SuppressLint("MissingPermission")
+        public Client4thDevice(BluetoothDevice device1) {
+            device = device1;
+            try {
+                if (bluetoothAdapter.isEnabled()) {
+                    // for (int i = 0; i < uuidList.size(); i++) {
+                    socket = device.createRfcommSocketToServiceRecord(uuidList.get(2));
+
+                    return;
+                    // }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        public void run() {
+            bluetoothAdapter.cancelDiscovery();
+            try {
+//                Message connecting = Message.obtain();
+//                connecting.what = STATE_CONNECTING_C;
+//                handler.sendMessage(connecting);
+
+                socket.connect();
+
+//                Message message = Message.obtain();
+//                message.what = STATE_CONNECTED_C;
+//                handler.sendMessage(message);
+
+                DeviceAName = socket.getRemoteDevice().getName();
+
+                 sendReceieve4thDevice = new SendReceieve4thDevice(socket);
+                sendReceieve4thDevice.start();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                try {
+                    socket.close();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+//                Message message = Message.obtain();
+//                message.what = STATE_CONNECTION_FAILED_CLIENT_C;
+//                handler.sendMessage(message);
+            }
+        }
+
+    }
+    public class SendReceieve4thDevice extends Thread {
+
+        private final BluetoothSocket bluetoothSocket;
+        private final InputStream inputStream;
+        private final OutputStream outputStream;
+
+        public SendReceieve4thDevice(BluetoothSocket socket) {
+            bluetoothSocket = socket;
+            InputStream tempIn = null;
+            OutputStream tempOut = null;
+
+            try {
+                tempIn = bluetoothSocket.getInputStream();
+                tempOut = bluetoothSocket.getOutputStream();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            inputStream = tempIn;
+            outputStream = tempOut;
+        }
+
+        public void run() {
+            byte[] buffer = new byte[1024];
+            int bytes;
+
+            while (true) {
+                try {
+                    bytes = inputStream.read(buffer);
+                    handler.obtainMessage(STATE_MESSAGE_RECIEVED_FROM_4TH_DEVICE, bytes, -1, buffer).sendToTarget();
+                } catch (IOException e) {
+                    e.printStackTrace();
+//                    Message message1 = Message.obtain();
+//                    message1.what = STATE_CONNECTION_FAILED_CLIENT_C;
+//                    handler.sendMessage(message1);
+//
+//                    Message message2 = Message.obtain();
+//                    message2.what = STATE_CONNECTION_FAILED;
+//                    handler.sendMessage(message2);
                     break;
                 }
             }
