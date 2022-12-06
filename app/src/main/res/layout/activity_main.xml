@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:id="@+id/serverLL"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_marginTop="50dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Choose Device : "
+            android:textColor="@color/black"
+            android:textSize="18sp"></TextView>
+
+        <LinearLayout
+            android:layout_marginTop="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/spinner_bg"
+            android:gravity="center"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <Spinner
+                android:id="@+id/Spinner"
+                android:layout_width="200dp"
+                android:layout_height="50dp"
+                android:spinnerMode="dialog"
+                android:text="Choose Device">
+            </Spinner>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/serverStartBTN"
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Start Server">
+        </Button>
+        <Button
+            android:id="@+id/clientStartBTN"
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Client">
+        </Button>
+
+
+        <TextView
+            android:layout_marginTop="40dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Status : "
+            android:textColor="@color/black"
+            android:textSize="19sp"></TextView>
+
+        <TextView
+            android:id="@+id/statusOfBluetooth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Disconnected"
+            android:textColor="@color/black"
+            android:textSize="24sp"></TextView>
+
+        <TextView
+            android:id="@+id/counterTV"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Counter"
+            android:visibility="gone"
+            android:layout_marginTop="10dp"
+            android:textSize="30sp"></TextView>
+
+        <TextView
+            android:id="@+id/counterTVB"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Counter"
+            android:visibility="gone"
+            android:layout_marginTop="10dp"
+            android:textSize="30sp"></TextView>
+
+
+        <TextView
+            android:id="@+id/counterTVC"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Counter"
+            android:visibility="gone"
+            android:layout_marginTop="10dp"
+            android:textSize="30sp"></TextView>
+
+        <Button
+            android:id="@+id/fourthDeviceBTN"
+            android:layout_marginTop="40dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4th Device">
+        </Button>
+        <TextView
+            android:id="@+id/fourthDeviceTV"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Total Count Recieved"
+            android:textColor="@color/black"
+            android:textSize="22sp">
+        </TextView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/clientLL"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:orientation="horizontal"
+        android:weightSum="3">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/deviceA"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Device A"
+                android:textColor="@color/white"
+                android:textSize="19sp"></Button>
+
+            <TextView
+                android:id="@+id/deviceAStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bluetooth Status"
+                android:layout_marginTop="5dp"></TextView>
+
+            <TextView
+                android:id="@+id/deviceACounter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="Counter"></TextView>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:layout_marginStart="5dp"
+
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/deviceB"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Device B"
+                android:textColor="@color/white"
+                android:textSize="19sp"></Button>
+
+            <TextView
+                android:id="@+id/deviceBStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="Bluetooth Status"></TextView>
+
+            <TextView
+                android:id="@+id/deviceBCounter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="Counter"></TextView>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:layout_marginStart="5dp"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/deviceC"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Device C"
+                android:textColor="@color/white"
+                android:textSize="19sp"></Button>
+
+            <TextView
+                android:id="@+id/deviceCStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="Bluetooth Status"></TextView>
+
+            <TextView
+                android:id="@+id/deviceCCounter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="Counter"></TextView>
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/countAllData"
+        android:layout_gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_marginTop="30dp"
+        android:textSize="22sp"
+        android:layout_height="wrap_content"
+        android:text="TextView" />
+    <Button
+        android:id="@+id/startServerFor4thDevice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Start Server"
+        android:layout_gravity="center"></Button>
+    </LinearLayout>
+</LinearLayout>
