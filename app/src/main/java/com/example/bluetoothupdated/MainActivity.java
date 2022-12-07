@@ -32,6 +32,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -39,17 +40,25 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener , View.OnClickListener, SensorEventListener {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener , SensorEventListener {
     LinearLayout clientLL;
     LinearLayout serverLL;
 
+    ListView sensorListView;
+    List<Sensor> sensorList;
+    ArrayAdapter arrayAdapterSensor;
 
-    private SensorManager senseManage;
+
+    Boolean CoundownPause=false;
+    private SensorManager sensorManager;
     private Sensor envSense;
+   // private Sensor pressure;
 
     Spinner spinner;
     String[] DeviceName = {"Select Device", "A", "B", "C"};
@@ -67,9 +76,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     int seconds = 0;
     String DevName;
+    String ClientName;
     CountDownTimer countDownTimer;
     BluetoothDevice[] paired_device_array;
 
+    String ServerName;
 
     private ArrayAdapter arrayAdapter;
 
@@ -125,12 +136,40 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     SendReceieve4thDevice sendReceieve4thDevice;
 
+
+
+    Button TemperatureBTN,HumidityBTN;
+    TextView TemperatureTV,HumidityTV;
+
+    Button Calculations;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        senseManage = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        TemperatureBTN=findViewById(R.id.getTemp);
+        HumidityBTN=findViewById(R.id.getHumidity);
+        TemperatureTV=findViewById(R.id.getTempTV);
+        HumidityTV=findViewById(R.id.getHumidityTV);
+        sensorListView = findViewById(R.id.ListOfSensor);
+
+        Calculations=findViewById(R.id.Calculations);
+        Calculations.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent=new Intent(MainActivity.this,CalculationsActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+        sensorList=sensorManager.getSensorList(Sensor.TYPE_ALL);
+        arrayAdapterSensor = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, sensorList);
+        sensorListView.setAdapter(arrayAdapterSensor);
+
 
 
 
@@ -183,7 +222,117 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         checkBluetoothIsOn();
         //IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         //registerReceiver(mReceiver, filter);
+        btnClicks();
     }
+
+    private void btnClicks() {
+        TemperatureBTN.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                envSense = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+                if(envSense==null)
+                    Toast.makeText(MainActivity.this,
+                            "No Temperature Sensor",
+                            Toast.LENGTH_SHORT).show();
+                else
+                    sensorManager.registerListener(MainActivity.this, envSense, SensorManager.SENSOR_DELAY_NORMAL);
+
+            }
+        });
+
+        HumidityBTN.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                envSense = sensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
+                if(envSense==null)
+                    Toast.makeText(MainActivity.this,
+                            "No Temperature Sensor",
+                            Toast.LENGTH_SHORT).show();
+                else
+                    sensorManager.registerListener(MainActivity.this, envSense, SensorManager.SENSOR_DELAY_NORMAL);
+            }
+        });
+
+
+        fourthDeviceServerBTN.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Server4thDevice server4thDevice = new Server4thDevice();
+                server4thDevice.start();
+            }
+        });
+
+        fourthDeviceClientBTN.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("MissingPermission")
+            @Override
+            public void onClick(View view) {
+                if (!bluetoothAdapter.isEnabled()) {
+                    Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(intent, 100);
+                } else {
+                    @SuppressLint("MissingPermission") Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+                    String[] strings = new String[pairedDevices.size()];
+                    paired_device_array = new BluetoothDevice[pairedDevices.size()];
+                    int i = 0;
+
+                    if (pairedDevices.size() > 0) {
+                        for (BluetoothDevice device : pairedDevices) {
+                            paired_device_array[i] = device;
+                            strings[i] = device.getName();
+                            i++;
+                        }
+                        arrayAdapter = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, strings);
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setTitle("Choose Device For Result");
+                        builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int item) {
+                                try {
+                                    sendReceieve4thDevice.cancel();
+                                } catch (Exception e) {
+
+                                }
+                                Client4thDevice client4thDevice = new Client4thDevice(paired_device_array[item]);
+                                client4thDevice.start();
+                            }
+                        });
+                        AlertDialog alert = builder.create();
+                        alert.show();
+
+                    }
+
+                }
+
+            }
+        });
+
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+
+     int SesnsorType=sensorEvent.sensor.getType();
+     switch (SesnsorType)
+     {
+         case Sensor.TYPE_LIGHT:
+             float lux = sensorEvent.values[0];
+             TemperatureTV.setText(String.valueOf(lux));
+             break;
+         case Sensor.TYPE_AMBIENT_TEMPERATURE:
+             float lux1 = sensorEvent.values[0];
+             HumidityTV.setText(String.valueOf(lux1));
+             break;
+     }
+//        float millibarsOfPressure = sensorEvent.values[0];
+//        TemperatureTV.setText(String.valueOf(millibarsOfPressure));
+
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+
+
+    }
+
 
     private void coundownTimerA() {
         countDownTimer = new CountDownTimer(Time * 1000, 1000) {
@@ -196,9 +345,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     sendReceieveA.write(CounterTV.getText().toString().getBytes());
 
                 } catch (Exception e) {
-                    Message message = Message.obtain();
-                    message.what = STATE_CONNECTING;
-                    handler.sendMessage(message);
+
                 }
             }
 
@@ -220,9 +367,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     sendReceieveB.write(CounterTVB.getText().toString().getBytes());
 
                 } catch (Exception e) {
-                    Message message = Message.obtain();
-                    message.what = STATE_CONNECTING_B;
-                    handler.sendMessage(message);
+
                 }
             }
 
@@ -244,9 +389,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     sendReceieveC.write(CounterTVC.getText().toString().getBytes());
 
                 } catch (Exception e) {
-                    Message message = Message.obtain();
-                    message.what = STATE_CONNECTING_C;
-                    handler.sendMessage(message);
+//                    Message message = Message.obtain();
+//                    message.what = STATE_CONNECTING_C;
+//                    handler.sendMessage(message);
                 }
             }
 
@@ -263,6 +408,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         ArrayAdapter arrayAdapter = new ArrayAdapter(this, com.google.android.material.R.layout.support_simple_spinner_dropdown_item, DeviceName);
         spinner.setAdapter(arrayAdapter);
 
+
+        if(CoundownPause==true)
+        {
+            CoundownPause=false;
+            countDownTimer.start();
+        }
+        else
+        {
+
+        }
         serverStartBTN.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -285,12 +440,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         });
 
+        startDevice();
 
-        handlerCountData();
+        //handlerCountData();
 
     }
 
-    public  void handlerCountData(){
+    public void handlerCountData(){
         Thread thread= new Thread(new Runnable() {
             @Override
             public void run() {
@@ -310,6 +466,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 else
                 {
                     countAllData.setText("All Devices Not Connected");
+                    fourthDeviceServerBTN.setVisibility(View.GONE);
                 }
             }
         });
@@ -378,15 +535,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 case STATE_CONNECTED:
                     statusOfBluetooth.setText("Connected To : " + DevName);
                     break;
-
                 case STATE_CONNECTED_A:
-                    DeviceAStatus.setText("Connected To : " + DevName);
+                    DeviceAStatus.setText("Connected To : " + ClientName);
+                    ClientName="";
                     break;
                 case STATE_CONNECTED_B:
-                    DeviceBStatus.setText("Connected To : " + DevName);
+                    DeviceBStatus.setText("Connected To : " + ClientName);
+                    ClientName="";
                     break;
                 case STATE_CONNECTED_C:
-                    DeviceCStatus.setText("Connected To : " + DevName);
+                    DeviceCStatus.setText("Connected To : " + ClientName);
+                    ClientName="";
                     break;
 
                 case STATE_CONNECTION_FAILED:
@@ -394,16 +553,60 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     CounterTV.setVisibility(View.GONE);
                     CounterTVB.setVisibility(View.GONE);
                     CounterTVC.setVisibility(View.GONE);
+
+                    onPause();
                     break;
 
                 case STATE_CONNECTION_FAILED_CLIENT_A:
-                    DeviceAStatus.setText("Connection Failed");
+                    if(ClientName!="")
+                    {
+                        DeviceAStatus.setText("Connection Failed\nWith\n"+ClientName);
+                    }
+                    else
+                    {
+                        DeviceAStatus.setText("Connection Failed");
+                    }
+
+                    ClientName="";
+                    try {
+                        sendReceieveA.cancel();
+                    }catch (Exception e)
+                    {
+                    }
                     break;
                 case STATE_CONNECTION_FAILED_CLIENT_B:
-                    DeviceBStatus.setText("Connection Failed");
+                    if(ClientName!="")
+                    {
+                        DeviceBStatus.setText("Connection Failed\nWith\n"+ClientName);
+                    }
+                    else
+                    {
+                        DeviceBStatus.setText("Connection Failed");
+                    }
+
+                    ClientName="";
+                    try {
+                        sendReceieveB.cancel();
+                    }catch (Exception e)
+                    {
+                    }
                     break;
                 case STATE_CONNECTION_FAILED_CLIENT_C:
-                    DeviceCStatus.setText("Connection Failed");
+                    if(ClientName!="")
+                    {
+                        DeviceCStatus.setText("Connection Failed\nWith\n"+ClientName);
+                    }
+                    else
+                    {
+                        DeviceCStatus.setText("Connection Failed");
+                    }
+
+                    ClientName="";
+                    try {
+                        sendReceieveC.cancel();
+                    }catch (Exception e)
+                    {
+                    }
                     break;
 
                 case STATE_BLUETOOTH_OFF:
@@ -416,6 +619,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     String tempMsgA = new String(readBuffA, 0, message.arg1);
                     DeviceACounter.setText(tempMsgA);
                     CountOfDeviceA = Integer.parseInt(DeviceACounter.getText().toString());
+                    handlerCountData();
                     break;
 
                 case STATE_MESSAGE_RECIEVED_FROM_B:
@@ -480,7 +684,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         if (countDownTimer != null) {
             countDownTimer.cancel();
+            CoundownPause=true;
         }
+        sensorManager.unregisterListener(this);
+
     }
 
 //    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -574,7 +781,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         }
                         arrayAdapter = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, strings);
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                        builder.setTitle("Choose Device A");
+                        builder.setTitle("Choose Device B");
                         builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int item) {
                                 try {
@@ -615,7 +822,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         }
                         arrayAdapter = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, strings);
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                        builder.setTitle("Choose Device A");
+                        builder.setTitle("Choose Device C");
                         builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int item) {
                                 try {
@@ -637,28 +844,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         });
 
 
-        fourthDeviceServerBTN.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Server4thDevice server4thDevice = new Server4thDevice();
-                server4thDevice.start();
-            }
-        });
-
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent sensorEvent) {
-
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
-    }
-
-    @Override
-    public void onClick(View view) {
 
     }
 
@@ -724,7 +909,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (bluetoothAdapter.isEnabled()) {
                     // for (int i = 0; i < uuidList.size(); i++) {
                     socket = device.createRfcommSocketToServiceRecord(uuidList.get(0));
-
+                    ClientName=device.getName();
                     return;
                     // }
                 }
@@ -814,7 +999,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 outputStream.write(bytes);
             } catch (IOException e) {
                 e.printStackTrace();
-                cancel();
+                //cancel();
             }
         }
 
@@ -892,7 +1077,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (bluetoothAdapter.isEnabled()) {
                     // for (int i = 0; i < uuidList.size(); i++) {
                     socket = device.createRfcommSocketToServiceRecord(uuidList.get(1));
-
+                    ClientName=device.getName();
                     return;
                     // }
                 }
@@ -982,7 +1167,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 outputStream.write(bytes);
             } catch (IOException e) {
                 e.printStackTrace();
-                cancel();
+                //cancel();
             }
         }
 
@@ -1060,7 +1245,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (bluetoothAdapter.isEnabled()) {
                     // for (int i = 0; i < uuidList.size(); i++) {
                     socket = device.createRfcommSocketToServiceRecord(uuidList.get(2));
-
+                    ClientName=device.getName();
                     return;
                     // }
                 }
@@ -1150,7 +1335,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 outputStream.write(bytes);
             } catch (IOException e) {
                 e.printStackTrace();
-                cancel();
+                //cancel();
             }
         }
 
@@ -1227,8 +1412,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             try {
                 if (bluetoothAdapter.isEnabled()) {
                     // for (int i = 0; i < uuidList.size(); i++) {
-                    socket = device.createRfcommSocketToServiceRecord(uuidList.get(2));
-
+                    socket = device.createRfcommSocketToServiceRecord(uuidList.get(3));
                     return;
                     // }
                 }
@@ -1333,4 +1517,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         }
     }
+
+
+
 }
