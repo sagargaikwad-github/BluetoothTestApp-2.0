@@ -142,12 +142,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     TextView TemperatureTV,HumidityTV;
 
     Button Calculations;
-
+    SqliteData sqliteData;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+         sqliteData=new SqliteData(MainActivity.this);
 
         TemperatureBTN=findViewById(R.id.getTemp);
         HumidityBTN=findViewById(R.id.getHumidity);

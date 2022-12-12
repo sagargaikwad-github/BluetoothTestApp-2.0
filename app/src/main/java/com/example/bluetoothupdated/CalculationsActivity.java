@@ -10,10 +10,13 @@ import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.text.DecimalFormat;
+
 public class CalculationsActivity extends AppCompatActivity {
     Button Flowrate;
-    TextInputEditText d, D, C, E, DeltaP, P;
+    TextInputEditText d, D, C, E, DeltaP, Temperature;
     TextView FlowRateTV;
+    SqliteData sqliteData;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,9 +29,11 @@ public class CalculationsActivity extends AppCompatActivity {
         C = findViewById(R.id.C);
         E = findViewById(R.id.E);
         DeltaP = findViewById(R.id.DeltaP);
-        P = findViewById(R.id.P);
+        Temperature = findViewById(R.id.T);
 
         FlowRateTV = findViewById(R.id.FlowrateTV);
+
+        sqliteData=new SqliteData(CalculationsActivity.this);
 
         Flowrate.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -38,15 +43,20 @@ public class CalculationsActivity extends AppCompatActivity {
                 Float CoefficientOfDischarge = Float.parseFloat(C.getText().toString());
                 Float ExponentialFactor = Float.parseFloat(E.getText().toString());
                 int DiffrentialPressure = Integer.parseInt(DeltaP.getText().toString());
-                Float DensityOfFluid = Float.parseFloat(P.getText().toString());
 
+                String temp=Temperature.getText().toString();
+
+                Float tempMain=Float.parseFloat(temp);
+                Float val= Float.valueOf(Math.round(tempMain));
+
+                Float density=sqliteData.getDensity(val);
+                Float DensityOfFluid = density;
 
                 Float DiameterRatio = DiameterRatio(DiameterOfOrifee, UpstreamPipeDiameter);
 
                 Float RootOf_OneMinus_DM_RaiseFour = RootOf_OneMinus_DM_RaiseFour(DiameterRatio);
 
                 Float PiByFourMultiplySquareDiamterofOrifee = DiameterOfOrifee(DiameterOfOrifee);
-
 
                 Float RootOfDensityandPressure = RootOfDensityandPressure(DiffrentialPressure, DensityOfFluid);
 
@@ -84,7 +94,10 @@ public class CalculationsActivity extends AppCompatActivity {
         float Multiply = 2 * diffrentialPressure * densityOfFluid;
 
         float sqreRoot = (float) Math.sqrt(Multiply);
-        String RatioString = String.format("%.5f", sqreRoot);
+        String RatioString = String.format("%.6f", sqreRoot);
+
+//        DecimalFormat decimalFormat=new DecimalFormat("00.0000");
+//        String finalPercentage = decimalFormat.format(sqreRoot);
 
         float ratio = Float.parseFloat(RatioString);
         return ratio;
