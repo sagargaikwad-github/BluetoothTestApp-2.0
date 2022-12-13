@@ -12,11 +12,9 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -40,13 +38,12 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener , SensorEventListener {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, SensorEventListener {
     LinearLayout clientLL;
     LinearLayout serverLL;
 
@@ -55,20 +52,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     ArrayAdapter arrayAdapterSensor;
 
 
-    Boolean CoundownPause=false;
+    Boolean CoundownPause = false;
     private SensorManager sensorManager;
     private Sensor envSense;
-   // private Sensor pressure;
+    // private Sensor pressure;
 
     Spinner spinner;
     String[] DeviceName = {"Select Device", "A", "B", "C"};
-    Button serverStartBTN, clientStartBTN, fourthDeviceClientBTN,fourthDeviceServerBTN;
+    Button serverStartBTN, clientStartBTN, fourthDeviceClientBTN, fourthDeviceServerBTN;
     private static final String APP_NAME = "Bluetooth App";
     private static final java.util.UUID UUID4th = java.util.UUID.fromString("9bbb4aaa-c772-4e30-853a-e6a64f5e30f3");
     BluetoothAdapter bluetoothAdapter;
 
     TextView statusOfBluetooth, CounterTV, CounterTVB, CounterTVC;
-    TextView fourthDeviceTV,countAllData;
+    TextView fourthDeviceTV, countAllData;
 
     int Time = 50;
     int TimeB = 500;
@@ -137,9 +134,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     SendReceieve4thDevice sendReceieve4thDevice;
 
 
-
-    Button TemperatureBTN,HumidityBTN;
-    TextView TemperatureTV,HumidityTV;
+    Button TemperatureBTN, HumidityBTN;
+    TextView TemperatureTV, HumidityTV;
 
     Button Calculations;
     SqliteData sqliteData;
@@ -149,32 +145,37 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-         sqliteData=new SqliteData(MainActivity.this);
+        sqliteData = new SqliteData(MainActivity.this);
 
-        TemperatureBTN=findViewById(R.id.getTemp);
-        HumidityBTN=findViewById(R.id.getHumidity);
-        TemperatureTV=findViewById(R.id.getTempTV);
-        HumidityTV=findViewById(R.id.getHumidityTV);
+        TemperatureBTN = findViewById(R.id.getTemp);
+        HumidityBTN = findViewById(R.id.getHumidity);
+        TemperatureTV = findViewById(R.id.getTempTV);
+        HumidityTV = findViewById(R.id.getHumidityTV);
         sensorListView = findViewById(R.id.ListOfSensor);
 
-        Calculations=findViewById(R.id.Calculations);
+        Calculations = findViewById(R.id.Calculations);
         Calculations.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent=new Intent(MainActivity.this,CalculationsActivity.class);
                 startActivity(intent);
+
+              //  CalculationsActivity calculationsActivity=new CalculationsActivity("0");
+
+
+
+//                CalculationsActivity calculationsActivity = new CalculationsActivity();
+
+
+                //Toast.makeText(MainActivity.this, calculationsActivity.Round, Toast.LENGTH_SHORT).show();
             }
         });
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
-        sensorList=sensorManager.getSensorList(Sensor.TYPE_ALL);
+        sensorList = sensorManager.getSensorList(Sensor.TYPE_ALL);
         arrayAdapterSensor = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, sensorList);
         sensorListView.setAdapter(arrayAdapterSensor);
-
-
-
-
 
 
         clientLL = findViewById(R.id.clientLL);
@@ -195,7 +196,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         CounterTVC = findViewById(R.id.counterTVC);
 
 
-        countAllData=findViewById(R.id.countAllData);
+        countAllData = findViewById(R.id.countAllData);
 
         DeviceA = findViewById(R.id.deviceA);
         DeviceB = findViewById(R.id.deviceB);
@@ -232,7 +233,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             @Override
             public void onClick(View view) {
                 envSense = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-                if(envSense==null)
+                if (envSense == null)
                     Toast.makeText(MainActivity.this,
                             "No Temperature Sensor",
                             Toast.LENGTH_SHORT).show();
@@ -246,7 +247,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             @Override
             public void onClick(View view) {
                 envSense = sensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
-                if(envSense==null)
+                if (envSense == null)
                     Toast.makeText(MainActivity.this,
                             "No Temperature Sensor",
                             Toast.LENGTH_SHORT).show();
@@ -312,18 +313,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
 
-     int SesnsorType=sensorEvent.sensor.getType();
-     switch (SesnsorType)
-     {
-         case Sensor.TYPE_LIGHT:
-             float lux = sensorEvent.values[0];
-             TemperatureTV.setText(String.valueOf(lux));
-             break;
-         case Sensor.TYPE_AMBIENT_TEMPERATURE:
-             float lux1 = sensorEvent.values[0];
-             HumidityTV.setText(String.valueOf(lux1));
-             break;
-     }
+        int SesnsorType = sensorEvent.sensor.getType();
+        switch (SesnsorType) {
+            case Sensor.TYPE_LIGHT:
+                float lux = sensorEvent.values[0];
+                TemperatureTV.setText(String.valueOf(lux));
+                break;
+            case Sensor.TYPE_AMBIENT_TEMPERATURE:
+                float lux1 = sensorEvent.values[0];
+                HumidityTV.setText(String.valueOf(lux1));
+                break;
+        }
 //        float millibarsOfPressure = sensorEvent.values[0];
 //        TemperatureTV.setText(String.valueOf(millibarsOfPressure));
 
@@ -411,13 +411,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         spinner.setAdapter(arrayAdapter);
 
 
-        if(CoundownPause==true)
-        {
-            CoundownPause=false;
+        if (CoundownPause == true) {
+            CoundownPause = false;
             countDownTimer.start();
-        }
-        else
-        {
+        } else {
 
         }
         serverStartBTN.setOnClickListener(new View.OnClickListener() {
@@ -448,25 +445,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     }
 
-    public void handlerCountData(){
-        Thread thread= new Thread(new Runnable() {
+    public void handlerCountData() {
+        Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                if(CountOfDeviceA!=-1 && CountOfDeviceB!=-1 && CountOfDeviceC!=-1)
-                {
-                    int add=CountOfDeviceA+CountOfDeviceB+CountOfDeviceC;
+                if (CountOfDeviceA != -1 && CountOfDeviceB != -1 && CountOfDeviceC != -1) {
+                    int add = CountOfDeviceA + CountOfDeviceB + CountOfDeviceC;
 
                     try {
                         countAllData.setText(String.valueOf(add));
                         sendReceieve4thDevice.write(String.valueOf(add).getBytes());
-                    }
-                    catch (Exception e)
-                    {
+                    } catch (Exception e) {
 
                     }
-                }
-                else
-                {
+                } else {
                     countAllData.setText("All Devices Not Connected");
                     fourthDeviceServerBTN.setVisibility(View.GONE);
                 }
@@ -539,15 +531,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     break;
                 case STATE_CONNECTED_A:
                     DeviceAStatus.setText("Connected To : " + ClientName);
-                    ClientName="";
+                    ClientName = "";
                     break;
                 case STATE_CONNECTED_B:
                     DeviceBStatus.setText("Connected To : " + ClientName);
-                    ClientName="";
+                    ClientName = "";
                     break;
                 case STATE_CONNECTED_C:
                     DeviceCStatus.setText("Connected To : " + ClientName);
-                    ClientName="";
+                    ClientName = "";
                     break;
 
                 case STATE_CONNECTION_FAILED:
@@ -560,54 +552,42 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     break;
 
                 case STATE_CONNECTION_FAILED_CLIENT_A:
-                    if(ClientName!="")
-                    {
-                        DeviceAStatus.setText("Connection Failed\nWith\n"+ClientName);
-                    }
-                    else
-                    {
+                    if (ClientName != "") {
+                        DeviceAStatus.setText("Connection Failed\nWith\n" + ClientName);
+                    } else {
                         DeviceAStatus.setText("Connection Failed");
                     }
 
-                    ClientName="";
+                    ClientName = "";
                     try {
                         sendReceieveA.cancel();
-                    }catch (Exception e)
-                    {
+                    } catch (Exception e) {
                     }
                     break;
                 case STATE_CONNECTION_FAILED_CLIENT_B:
-                    if(ClientName!="")
-                    {
-                        DeviceBStatus.setText("Connection Failed\nWith\n"+ClientName);
-                    }
-                    else
-                    {
+                    if (ClientName != "") {
+                        DeviceBStatus.setText("Connection Failed\nWith\n" + ClientName);
+                    } else {
                         DeviceBStatus.setText("Connection Failed");
                     }
 
-                    ClientName="";
+                    ClientName = "";
                     try {
                         sendReceieveB.cancel();
-                    }catch (Exception e)
-                    {
+                    } catch (Exception e) {
                     }
                     break;
                 case STATE_CONNECTION_FAILED_CLIENT_C:
-                    if(ClientName!="")
-                    {
-                        DeviceCStatus.setText("Connection Failed\nWith\n"+ClientName);
-                    }
-                    else
-                    {
+                    if (ClientName != "") {
+                        DeviceCStatus.setText("Connection Failed\nWith\n" + ClientName);
+                    } else {
                         DeviceCStatus.setText("Connection Failed");
                     }
 
-                    ClientName="";
+                    ClientName = "";
                     try {
                         sendReceieveC.cancel();
-                    }catch (Exception e)
-                    {
+                    } catch (Exception e) {
                     }
                     break;
 
@@ -686,7 +666,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         if (countDownTimer != null) {
             countDownTimer.cancel();
-            CoundownPause=true;
+            CoundownPause = true;
         }
         sensorManager.unregisterListener(this);
 
@@ -846,7 +826,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         });
 
 
-
     }
 
 
@@ -900,6 +879,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     }
+
     private class ClientAClass extends Thread {
         private BluetoothDevice device;
         private BluetoothSocket socket;
@@ -911,7 +891,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (bluetoothAdapter.isEnabled()) {
                     // for (int i = 0; i < uuidList.size(); i++) {
                     socket = device.createRfcommSocketToServiceRecord(uuidList.get(0));
-                    ClientName=device.getName();
+                    ClientName = device.getName();
                     return;
                     // }
                 }
@@ -953,6 +933,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
     }
+
     public class SendReceieveA extends Thread {
 
         private final BluetoothSocket bluetoothSocket;
@@ -1068,6 +1049,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     }
+
     private class ClientBClass extends Thread {
         private BluetoothDevice device;
         private BluetoothSocket socket;
@@ -1079,7 +1061,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (bluetoothAdapter.isEnabled()) {
                     // for (int i = 0; i < uuidList.size(); i++) {
                     socket = device.createRfcommSocketToServiceRecord(uuidList.get(1));
-                    ClientName=device.getName();
+                    ClientName = device.getName();
                     return;
                     // }
                 }
@@ -1121,6 +1103,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
     }
+
     public class SendReceieveB extends Thread {
 
         private final BluetoothSocket bluetoothSocket;
@@ -1236,6 +1219,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     }
+
     private class ClientCClass extends Thread {
         private BluetoothDevice device;
         private BluetoothSocket socket;
@@ -1247,7 +1231,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (bluetoothAdapter.isEnabled()) {
                     // for (int i = 0; i < uuidList.size(); i++) {
                     socket = device.createRfcommSocketToServiceRecord(uuidList.get(2));
-                    ClientName=device.getName();
+                    ClientName = device.getName();
                     return;
                     // }
                 }
@@ -1289,6 +1273,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
     }
+
     public class SendReceieveC extends Thread {
 
         private final BluetoothSocket bluetoothSocket;
@@ -1404,6 +1389,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     }
+
     private class Client4thDevice extends Thread {
         private BluetoothDevice device;
         private BluetoothSocket socket;
@@ -1439,7 +1425,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 DeviceAName = socket.getRemoteDevice().getName();
 
-                 sendReceieve4thDevice = new SendReceieve4thDevice(socket);
+                sendReceieve4thDevice = new SendReceieve4thDevice(socket);
                 sendReceieve4thDevice.start();
 
             } catch (IOException e) {
@@ -1456,6 +1442,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
     }
+
     public class SendReceieve4thDevice extends Thread {
 
         private final BluetoothSocket bluetoothSocket;
@@ -1519,7 +1506,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         }
     }
-
 
 
 }

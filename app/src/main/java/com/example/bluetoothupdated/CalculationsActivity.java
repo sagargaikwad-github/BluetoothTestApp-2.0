@@ -10,13 +10,18 @@ import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
 
-import java.text.DecimalFormat;
-
-public class CalculationsActivity extends AppCompatActivity {
+public class CalculationsActivity extends AppCompatActivity  {
     Button Flowrate;
     TextInputEditText d, D, C, E, DeltaP, Temperature;
     TextView FlowRateTV;
     SqliteData sqliteData;
+    String Round;
+    Float finalValue;
+
+
+//    public CalculationsActivity(String temp) {
+//        this.temp = temp;
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +49,7 @@ public class CalculationsActivity extends AppCompatActivity {
                 Float ExponentialFactor = Float.parseFloat(E.getText().toString());
                 int DiffrentialPressure = Integer.parseInt(DeltaP.getText().toString());
 
-                String temp=Temperature.getText().toString();
+               String temp=Temperature.getText().toString();
 
                 Float tempMain=Float.parseFloat(temp);
                 Float val= Float.valueOf(Math.round(tempMain));
@@ -60,12 +65,17 @@ public class CalculationsActivity extends AppCompatActivity {
 
                 Float RootOfDensityandPressure = RootOfDensityandPressure(DiffrentialPressure, DensityOfFluid);
 
-                Float finalValue =CoefficientOfDischarge * RootOf_OneMinus_DM_RaiseFour * PiByFourMultiplySquareDiamterofOrifee * RootOfDensityandPressure;
-                String Round=String.format("%.6f",finalValue);
+               finalValue =CoefficientOfDischarge * RootOf_OneMinus_DM_RaiseFour * PiByFourMultiplySquareDiamterofOrifee * RootOfDensityandPressure;
+
+                Round=String.format("%.6f", finalValue);
+
                 FlowRateTV.setText("Orifiee Mass FlowRate : "+Round +" Kg/s");
+
+
             }
         });
     }
+
 
 
     private float DiameterRatio(Float diameterOfOrifee, Float upstreamPipeDiameter) {
@@ -102,6 +112,7 @@ public class CalculationsActivity extends AppCompatActivity {
         float ratio = Float.parseFloat(RatioString);
         return ratio;
     }
+
 
 
 }
