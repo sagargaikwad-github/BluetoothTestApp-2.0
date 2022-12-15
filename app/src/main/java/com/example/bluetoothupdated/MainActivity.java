@@ -12,6 +12,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -40,32 +41,26 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, SensorEventListener {
+import javax.xml.transform.Result;
+
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, CaluclationResult {
     LinearLayout clientLL;
     LinearLayout serverLL;
-
-    ListView sensorListView;
-    List<Sensor> sensorList;
-    ArrayAdapter arrayAdapterSensor;
-
-
-    Boolean CoundownPause = false;
-    private SensorManager sensorManager;
-    private Sensor envSense;
-    // private Sensor pressure;
-
+    //    Boolean CountDownPause = false;
     Spinner spinner;
-    String[] DeviceName = {"Select Device", "A", "B", "C"};
+    String[] DeviceNameArray = {"Select Device", "Temperature", "Pressure", "PPM"};
     Button serverStartBTN, clientStartBTN, fourthDeviceClientBTN, fourthDeviceServerBTN;
     private static final String APP_NAME = "Bluetooth App";
     private static final java.util.UUID UUID4th = java.util.UUID.fromString("9bbb4aaa-c772-4e30-853a-e6a64f5e30f3");
     BluetoothAdapter bluetoothAdapter;
 
-    TextView statusOfBluetooth, CounterTV, CounterTVB, CounterTVC;
-    TextView fourthDeviceTV, countAllData;
+    TextView  CounterTV_Temperature, CounterTV_Pressure, CounterTV_PPM;
+    TextView statusOfBluetooth,fourthDeviceServerTV;
+    TextView fourthDeviceClientTV, countAllData;
 
     int Time = 50;
     int TimeB = 500;
@@ -74,10 +69,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     int seconds = 0;
     String DevName;
     String ClientName;
-    CountDownTimer countDownTimer;
+    //CountDownTimer countDownTimer;
     BluetoothDevice[] paired_device_array;
 
     String ServerName;
+    String CalculationResult = null;
 
     private ArrayAdapter arrayAdapter;
 
@@ -86,13 +82,28 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     final int STATE_CONNECTING_A = 2;
     final int STATE_CONNECTING_B = 3;
     final int STATE_CONNECTING_C = 4;
+    final int STATE_CONNECTING_Device4 = 5;
+    final int STATE_CONNECTING_Clinet_Device4 = 6;
 
-    final int STATE_CONNECTED = 11;
+    //Server Device Connection Update
+    final int STATE_CONNECTED_Temperature = 51;
+    final int STATE_CONNECTED_Pressure = 52;
+    final int STATE_CONNECTED_PPM = 53;
+    final int STATE_CONNECTED_SERVER_FOR_4TH_DEVICE = 54;
+
+    final int STATE_CONNECTION_FAILED_Temperature = 24;
+    final int STATE_CONNECTION_FAILED_Pressure = 25;
+    final int STATE_CONNECTION_FAILED_PPM = 26;
+
+
+
+    //Client Device Connection Update via Handler
     final int STATE_CONNECTED_A = 12;
     final int STATE_CONNECTED_B = 13;
     final int STATE_CONNECTED_C = 14;
+    final int STATE_CONNECTED_CLIENT_FOR_4TH_DEVICE = 15;
 
-    final int STATE_CONNECTION_FAILED = 21;
+    //final int STATE_CONNECTION_FAILED = 21;
     final int STATE_BLUETOOTH_OFF = 23;
 
     final int STATE_MESSAGE_RECIEVED_FROM_A = 31;
@@ -105,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     final int STATE_CONNECTION_FAILED_CLIENT_C = 43;
 
 
-    TextView DeviceAStatus, DeviceACounter;
+    TextView TemperatureDeviceStatus_TV, TemperatureDeviceCounter_TV;
     TextView DeviceBStatus, DeviceBCounter;
     TextView DeviceCStatus, DeviceCCounter;
 
@@ -113,13 +124,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private BluetoothServerSocket serverSocket = null;
 
-
     int CountOfDeviceA = -1;
     int CountOfDeviceB = -1;
     int CountOfDeviceC = -1;
 
 
-    Button DeviceA, DeviceB, DeviceC;
+    Button TemperatureDevice, PressureDevice, PPMDevice;
     //static MainActivity.SendRecieve4thDevice sendRecieve4thDevice;
 
 
@@ -127,15 +137,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     static String DeviceBName;
     static String DeviceCName;
 
-    SendReceieveA sendReceieveA;
-    SendReceieveB sendReceieveB;
-    SendReceieveC sendReceieveC;
+    SendReceiveTemperature sendReceiveTemperature;
+    SendReceivePressure sendReceivePressure;
+    SendReceivePPM sendReceivePPM;
 
     SendReceieve4thDevice sendReceieve4thDevice;
 
-
-    Button TemperatureBTN, HumidityBTN;
-    TextView TemperatureTV, HumidityTV;
 
     Button Calculations;
     SqliteData sqliteData;
@@ -147,35 +154,28 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         sqliteData = new SqliteData(MainActivity.this);
 
-        TemperatureBTN = findViewById(R.id.getTemp);
-        HumidityBTN = findViewById(R.id.getHumidity);
-        TemperatureTV = findViewById(R.id.getTempTV);
-        HumidityTV = findViewById(R.id.getHumidityTV);
-        sensorListView = findViewById(R.id.ListOfSensor);
-
         Calculations = findViewById(R.id.Calculations);
         Calculations.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent=new Intent(MainActivity.this,CalculationsActivity.class);
-                startActivity(intent);
-
-              //  CalculationsActivity calculationsActivity=new CalculationsActivity("0");
-
-
-
-//                CalculationsActivity calculationsActivity = new CalculationsActivity();
-
-
-                //Toast.makeText(MainActivity.this, calculationsActivity.Round, Toast.LENGTH_SHORT).show();
+//                Calculation calculation = new Calculation(sqliteData,CountOfDeviceA,CountOfDeviceB,CountOfDeviceC);
+//                String text = calculation.method();
+//                Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
             }
         });
 
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        Button SavedValues = findViewById(R.id.savedValues);
+        SavedValues.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, CalculationsActivity.class);
+                startActivity(intent);
 
-        sensorList = sensorManager.getSensorList(Sensor.TYPE_ALL);
-        arrayAdapterSensor = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, sensorList);
-        sensorListView.setAdapter(arrayAdapterSensor);
+                //  CalculationsActivity calculationsActivity=new CalculationsActivity("0");
+//                CalculationsActivity calculationsActivity = new CalculationsActivity();
+                //Toast.makeText(MainActivity.this, calculationsActivity.Round, Toast.LENGTH_SHORT).show();
+            }
+        });
 
 
         clientLL = findViewById(R.id.clientLL);
@@ -185,29 +185,34 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         spinner = findViewById(R.id.Spinner);
         serverStartBTN = findViewById(R.id.serverStartBTN);
         clientStartBTN = findViewById(R.id.clientStartBTN);
+
+        //For Server Side Checking if Bluetooth Current State;
         statusOfBluetooth = findViewById(R.id.statusOfBluetooth);
-        CounterTV = findViewById(R.id.counterTV);
+
+
 
         fourthDeviceClientBTN = findViewById(R.id.fourthDeviceClientBTN);
         fourthDeviceServerBTN = findViewById(R.id.fourthDeviceServerBTN);
-        fourthDeviceTV = findViewById(R.id.fourthDeviceTV);
+        fourthDeviceClientTV = findViewById(R.id.fourthDeviceTV);
+        fourthDeviceServerTV=findViewById(R.id.fourthDeviceServerTV);
 
-        CounterTVB = findViewById(R.id.counterTVB);
-        CounterTVC = findViewById(R.id.counterTVC);
 
+        CounterTV_Temperature = findViewById(R.id.counterTV);
+        CounterTV_Pressure = findViewById(R.id.counterTVB);
+        CounterTV_PPM = findViewById(R.id.counterTVC);
 
         countAllData = findViewById(R.id.countAllData);
 
-        DeviceA = findViewById(R.id.deviceA);
-        DeviceB = findViewById(R.id.deviceB);
-        DeviceC = findViewById(R.id.deviceC);
+        TemperatureDevice = findViewById(R.id.deviceA);
+        PressureDevice = findViewById(R.id.deviceB);
+        PPMDevice = findViewById(R.id.deviceC);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         spinner.setOnItemSelectedListener(MainActivity.this);
 
-        DeviceAStatus = findViewById(R.id.deviceAStatus);
-        DeviceACounter = findViewById(R.id.deviceACounter);
+        TemperatureDeviceStatus_TV = findViewById(R.id.deviceAStatus);
+        TemperatureDeviceCounter_TV = findViewById(R.id.deviceACounter);
 
         DeviceBStatus = findViewById(R.id.deviceBStatus);
         DeviceBCounter = findViewById(R.id.deviceBCounter);
@@ -229,33 +234,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private void btnClicks() {
-        TemperatureBTN.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                envSense = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-                if (envSense == null)
-                    Toast.makeText(MainActivity.this,
-                            "No Temperature Sensor",
-                            Toast.LENGTH_SHORT).show();
-                else
-                    sensorManager.registerListener(MainActivity.this, envSense, SensorManager.SENSOR_DELAY_NORMAL);
-
-            }
-        });
-
-        HumidityBTN.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                envSense = sensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
-                if (envSense == null)
-                    Toast.makeText(MainActivity.this,
-                            "No Temperature Sensor",
-                            Toast.LENGTH_SHORT).show();
-                else
-                    sensorManager.registerListener(MainActivity.this, envSense, SensorManager.SENSOR_DELAY_NORMAL);
-            }
-        });
-
 
         fourthDeviceServerBTN.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -310,113 +288,150 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     }
 
-    @Override
-    public void onSensorChanged(SensorEvent sensorEvent) {
 
-        int SesnsorType = sensorEvent.sensor.getType();
-        switch (SesnsorType) {
-            case Sensor.TYPE_LIGHT:
-                float lux = sensorEvent.values[0];
-                TemperatureTV.setText(String.valueOf(lux));
-                break;
-            case Sensor.TYPE_AMBIENT_TEMPERATURE:
-                float lux1 = sensorEvent.values[0];
-                HumidityTV.setText(String.valueOf(lux1));
-                break;
-        }
-//        float millibarsOfPressure = sensorEvent.values[0];
-//        TemperatureTV.setText(String.valueOf(millibarsOfPressure));
+    private void TemperatureCountDown() {
+//        countDownTimer = new CountDownTimer(Time * 1000, 1000) {
+//            @Override
+//            public void onTick(long l) {
+//                seconds = (int) (l / 1000);
+//                try {
+//                    CounterTV_Temperature.setText(String.valueOf(seconds));
+//
+//                    sendReceiveTemperature.write(CounterTV_Temperature.getText().toString().getBytes());
+//
+//                } catch (Exception e) {
+//
+//                }
+//            }
+//
+//            @Override
+//            public void onFinish() {
+//                TemperatureCountDown();
+//            }
+//        }.start();
+
+        int min = -20;
+        int max = 50;
+        int RandomInt = (int) Math.floor(Math.random() * (max - min + 1) + min);
+        CounterTV_Temperature.setText(String.valueOf(RandomInt));
+
+//       try {
+//           sendReceiveTemperature.write(CounterTV_Temperature.getText().toString().getBytes());
+//       }catch (Exception e)
+//       {
+//
+//       }
 
     }
 
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
-
-    }
-
-
-    private void coundownTimerA() {
-        countDownTimer = new CountDownTimer(Time * 1000, 1000) {
+    private void PressureCountDown() {
+//        countDownTimer = new CountDownTimer(TimeB * 1000, 1000) {
+//            @Override
+//            public void onTick(long l) {
+//                seconds = (int) (l / 1000);
+//                try {
+//                    CounterTV_Pressure.setText(String.valueOf(seconds));
+//
+//                    sendReceivePressure.write(CounterTV_Pressure.getText().toString().getBytes());
+//
+//                } catch (Exception e) {
+//
+//                }
+//            }
+//
+//            @Override
+//            public void onFinish() {
+//                PressureCountDown();
+//            }
+//        }.start();
+        Handler handler = new Handler();
+        Runnable runnable = new Runnable() {
             @Override
-            public void onTick(long l) {
-                seconds = (int) (l / 1000);
+            public void run() {
+                Random random = new Random();
+                int upperbound = 50;
+                int Pressure = random.nextInt(upperbound);
+                CounterTV_Pressure.setText(String.valueOf(Pressure));
                 try {
-                    CounterTV.setText(String.valueOf(seconds));
-
-                    sendReceieveA.write(CounterTV.getText().toString().getBytes());
-
+                    sendReceivePressure.write(CounterTV_Pressure.getText().toString().getBytes());
                 } catch (Exception e) {
-
                 }
+                PressureCountDown();
             }
+        };
+        handler.postDelayed(runnable, 5000);
 
-            @Override
-            public void onFinish() {
-                coundownTimerA();
-            }
-        }.start();
     }
 
-    private void coundownTimerB() {
-        countDownTimer = new CountDownTimer(TimeB * 1000, 1000) {
+    private void PPMCountDown() {
+//        countDownTimer = new CountDownTimer(TimeC * 1000, 1000) {
+//            @Override
+//            public void onTick(long l) {
+//                seconds = (int) (l / 1000);
+//                try {
+//                    CounterTV_PPM.setText(String.valueOf(seconds));
+//
+//                    sendReceivePPM.write(CounterTV_PPM.getText().toString().getBytes());
+//
+//                } catch (Exception e) {
+////                    Message message = Message.obtain();
+////                    message.what = STATE_CONNECTING_C;
+////                    handler.sendMessage(message);
+//                }
+//            }
+//
+//            @Override
+//            public void onFinish() {
+//                PPMCountDown();
+//            }
+//        }.start();
+        Handler handler = new Handler();
+        Runnable runnable = new Runnable() {
             @Override
-            public void onTick(long l) {
-                seconds = (int) (l / 1000);
+            public void run() {
+                Random random = new Random();
+                int upperbound = 1000;
+                int PPM = random.nextInt(upperbound);
+                CounterTV_PPM.setText(String.valueOf(PPM));
                 try {
-                    CounterTVB.setText(String.valueOf(seconds));
-
-                    sendReceieveB.write(CounterTVB.getText().toString().getBytes());
-
+                    sendReceivePPM.write(CounterTV_PPM.getText().toString().getBytes());
                 } catch (Exception e) {
-
                 }
+                PPMCountDown();
             }
-
-            @Override
-            public void onFinish() {
-                coundownTimerB();
-            }
-        }.start();
+        };
+        handler.postDelayed(runnable, 5000);
     }
 
-    private void coundownTimerC() {
-        countDownTimer = new CountDownTimer(TimeC * 1000, 1000) {
+    private void CalulationData()
+    {
+        Handler handler = new Handler();
+        Runnable runnable = new Runnable() {
             @Override
-            public void onTick(long l) {
-                seconds = (int) (l / 1000);
+            public void run() {
                 try {
-                    CounterTVC.setText(String.valueOf(seconds));
-
-                    sendReceieveC.write(CounterTVC.getText().toString().getBytes());
-
+                    sendReceieve4thDevice.write(countAllData.getText().toString().getBytes());
                 } catch (Exception e) {
-//                    Message message = Message.obtain();
-//                    message.what = STATE_CONNECTING_C;
-//                    handler.sendMessage(message);
                 }
+                CalulationData();
             }
-
-            @Override
-            public void onFinish() {
-                coundownTimerC();
-            }
-        }.start();
+        };
+        handler.postDelayed(runnable, 2000);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        ArrayAdapter arrayAdapter = new ArrayAdapter(this, com.google.android.material.R.layout.support_simple_spinner_dropdown_item, DeviceName);
+        ArrayAdapter arrayAdapter = new ArrayAdapter(this, com.google.android.material.R.layout.support_simple_spinner_dropdown_item, DeviceNameArray);
         spinner.setAdapter(arrayAdapter);
 
 
-        if (CoundownPause == true) {
-            CoundownPause = false;
-            countDownTimer.start();
-        } else {
-
-        }
+//        if (CountDownPause == true) {
+//            CountDownPause = false;
+//            countDownTimer.start();
+//        } else {
+//
+//        }
         serverStartBTN.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -425,6 +440,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 } else {
                     ThreadName = spinner.getSelectedItem().toString();
                     startServer(ThreadName);
+
+                    statusOfBluetooth.setVisibility(View.VISIBLE);
+
                 }
 
             }
@@ -449,19 +467,34 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                if (CountOfDeviceA != -1 && CountOfDeviceB != -1 && CountOfDeviceC != -1) {
-                    int add = CountOfDeviceA + CountOfDeviceB + CountOfDeviceC;
+                //   if (CountOfDeviceA != -1 && CountOfDeviceB != -1 && CountOfDeviceC != -1) {
+//                    int add = CountOfDeviceA + CountOfDeviceB + CountOfDeviceC;
+//                    try {
+//                        countAllData.setText(String.valueOf(add));
+//                        sendReceieve4thDevice.write(String.valueOf(add).getBytes());
+//                    } catch (Exception e) {
+//
+//                    }
 
-                    try {
-                        countAllData.setText(String.valueOf(add));
-                        sendReceieve4thDevice.write(String.valueOf(add).getBytes());
-                    } catch (Exception e) {
+                //CountOfDeviceA=0;
+               // CountOfDeviceB = 10;
 
+
+                Calculation calculation = new Calculation(sqliteData, CountOfDeviceA, CountOfDeviceB, CountOfDeviceC);
+                String text = calculation.method();
+
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        countAllData.setText(text);
                     }
-                } else {
-                    countAllData.setText("All Devices Not Connected");
-                    fourthDeviceServerBTN.setVisibility(View.GONE);
-                }
+                });
+
+
+//                } else {
+//                    countAllData.setText("All Devices Not Connected");
+//                    fourthDeviceServerBTN.setVisibility(View.GONE);
+//                }
             }
         });
         thread.start();
@@ -473,36 +506,48 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private void startServer(String servername) {
-
         if (servername == "Select Device") {
             Toast.makeText(MainActivity.this, "Please select server from list", Toast.LENGTH_SHORT).show();
         } else {
-            if (servername == "A") {
-                ServerClassA serverClassA = new ServerClassA();
-                serverClassA.start();
-                CounterTV.setVisibility(View.VISIBLE);
-                CounterTVB.setVisibility(View.GONE);
-                CounterTVC.setVisibility(View.GONE);
+            if (servername == "Temperature") {
 
-                coundownTimerA();
+                try {
+                    sendReceiveTemperature.cancel();
+                    sendReceivePressure.cancel();
+                    sendReceivePPM.cancel();
+                } catch (Exception e) {
+                }
+
+                ServerTemperature serverTemperature = new ServerTemperature();
+                serverTemperature.start();
             }
-            if (servername == "B") {
-                ServerClassB serverClassB = new ServerClassB();
-                serverClassB.start();
-                CounterTV.setVisibility(View.GONE);
-                CounterTVB.setVisibility(View.VISIBLE);
-                CounterTVC.setVisibility(View.GONE);
+            if (servername == "Pressure") {
 
-                coundownTimerB();
+                try {
+                    sendReceiveTemperature.cancel();
+                    sendReceivePressure.cancel();
+                    sendReceivePPM.cancel();
+                } catch (Exception e) {
+                }
+
+
+                ServerPressure serverPressure = new ServerPressure();
+                serverPressure.start();
             }
-            if (servername == "C") {
-                ServerClassC serverClassC = new ServerClassC();
-                serverClassC.start();
-                CounterTV.setVisibility(View.GONE);
-                CounterTVB.setVisibility(View.GONE);
-                CounterTVC.setVisibility(View.VISIBLE);
+            if (servername == "PPM") {
+                try {
+                    sendReceiveTemperature.cancel();
+                    sendReceivePressure.cancel();
+                    sendReceivePPM.cancel();
+                } catch (Exception e) {
+                }
 
-                coundownTimerC();
+
+                ServerPPM serverPPM = new ServerPPM();
+                serverPPM.start();
+
+
+
             }
         }
 
@@ -516,8 +561,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 case STATE_CONNECTING:
                     statusOfBluetooth.setText("Connecting...");
                     break;
+
                 case STATE_CONNECTING_A:
-                    DeviceAStatus.setText("Connecting...");
+                    TemperatureDeviceStatus_TV.setText("Connecting...");
                     break;
                 case STATE_CONNECTING_B:
                     DeviceBStatus.setText("Connecting...");
@@ -526,11 +572,61 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     DeviceCStatus.setText("Connecting...");
                     break;
 
-                case STATE_CONNECTED:
-                    statusOfBluetooth.setText("Connected To : " + DevName);
+                case STATE_CONNECTING_Device4:
+                    fourthDeviceServerTV.setText("Connecting...");
                     break;
+                case STATE_CONNECTING_Clinet_Device4:
+                    fourthDeviceClientTV.setText("Connecting...");
+                    break;
+
+
+                case STATE_CONNECTED_Temperature:
+                    CounterTV_Temperature.setVisibility(View.VISIBLE);
+                    CounterTV_Pressure.setVisibility(View.GONE);
+                    CounterTV_PPM.setVisibility(View.GONE);
+
+                    statusOfBluetooth.setVisibility(View.VISIBLE);
+                    statusOfBluetooth.setText("Connected To : " + DevName);
+
+                    TemperatureCountDown();
+
+                    try {
+                        sendReceiveTemperature.write(CounterTV_Temperature.getText().toString().getBytes());
+                    }catch (Exception e)
+                    {
+
+                    }
+                    break;
+
+
+                case STATE_CONNECTED_Pressure:
+
+                    CounterTV_Temperature.setVisibility(View.GONE);
+                    CounterTV_Pressure.setVisibility(View.VISIBLE);
+                    CounterTV_PPM.setVisibility(View.GONE);
+
+                    statusOfBluetooth.setVisibility(View.VISIBLE);
+                    statusOfBluetooth.setText("Connected To : " + DevName);
+
+                    PressureCountDown();
+                    break;
+
+                case STATE_CONNECTED_PPM:
+                    CounterTV_Temperature.setVisibility(View.GONE);
+                    CounterTV_Pressure.setVisibility(View.GONE);
+                    CounterTV_PPM.setVisibility(View.VISIBLE);
+
+                    statusOfBluetooth.setVisibility(View.VISIBLE);
+                    statusOfBluetooth.setText("Connected To : " + DevName);
+                    PPMCountDown();
+                    break;
+
+                case STATE_CONNECTED_CLIENT_FOR_4TH_DEVICE:
+                    fourthDeviceClientTV.setText("Connected Sucessfully 4th Server");
+                    break;
+
                 case STATE_CONNECTED_A:
-                    DeviceAStatus.setText("Connected To : " + ClientName);
+                    TemperatureDeviceStatus_TV.setText("Connected To : " + ClientName);
                     ClientName = "";
                     break;
                 case STATE_CONNECTED_B:
@@ -542,25 +638,49 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     ClientName = "";
                     break;
 
-                case STATE_CONNECTION_FAILED:
-                    statusOfBluetooth.setText("Connection Failed");
-                    CounterTV.setVisibility(View.GONE);
-                    CounterTVB.setVisibility(View.GONE);
-                    CounterTVC.setVisibility(View.GONE);
+                case STATE_CONNECTED_SERVER_FOR_4TH_DEVICE:
+                    fourthDeviceServerTV.setText("Connected 4th Client");
+                    CalulationData();
 
-                    onPause();
+                    break;
+
+
+
+                case STATE_CONNECTION_FAILED_Temperature:
+                    CounterTV_Temperature.setVisibility(View.GONE);
+                    CounterTV_Pressure.setVisibility(View.GONE);
+                    CounterTV_PPM.setVisibility(View.GONE);
+
+                    statusOfBluetooth.setVisibility(View.VISIBLE);
+                    statusOfBluetooth.setText("Connection Failed from Temperature");
+                    break;
+                case STATE_CONNECTION_FAILED_Pressure:
+                    CounterTV_Temperature.setVisibility(View.GONE);
+                    CounterTV_Pressure.setVisibility(View.GONE);
+                    CounterTV_PPM.setVisibility(View.GONE);
+
+                    statusOfBluetooth.setVisibility(View.VISIBLE);
+                    statusOfBluetooth.setText("Connection Failed from Pressure");
+                    break;
+                case STATE_CONNECTION_FAILED_PPM:
+                    CounterTV_Temperature.setVisibility(View.GONE);
+                    CounterTV_Pressure.setVisibility(View.GONE);
+                    CounterTV_PPM.setVisibility(View.GONE);
+
+                    statusOfBluetooth.setVisibility(View.VISIBLE);
+                    statusOfBluetooth.setText("Connection Failed From PPM");
                     break;
 
                 case STATE_CONNECTION_FAILED_CLIENT_A:
                     if (ClientName != "") {
-                        DeviceAStatus.setText("Connection Failed\nWith\n" + ClientName);
+                        TemperatureDeviceStatus_TV.setText("Connection Failed\nWith\n" + ClientName);
                     } else {
-                        DeviceAStatus.setText("Connection Failed");
+                        TemperatureDeviceStatus_TV.setText("Connection Failed");
                     }
 
                     ClientName = "";
                     try {
-                        sendReceieveA.cancel();
+                        sendReceiveTemperature.cancel();
                     } catch (Exception e) {
                     }
                     break;
@@ -573,7 +693,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     ClientName = "";
                     try {
-                        sendReceieveB.cancel();
+                        sendReceivePressure.cancel();
                     } catch (Exception e) {
                     }
                     break;
@@ -586,21 +706,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     ClientName = "";
                     try {
-                        sendReceieveC.cancel();
+                        sendReceivePPM.cancel();
                     } catch (Exception e) {
                     }
                     break;
 
                 case STATE_BLUETOOTH_OFF:
                     statusOfBluetooth.setText("Bluetooth is Off, Please Turned on");
-                    countDownTimer.cancel();
+                    //countDownTimer.cancel();
                     break;
 
                 case STATE_MESSAGE_RECIEVED_FROM_A:
                     byte[] readBuffA = (byte[]) message.obj;
                     String tempMsgA = new String(readBuffA, 0, message.arg1);
-                    DeviceACounter.setText(tempMsgA);
-                    CountOfDeviceA = Integer.parseInt(DeviceACounter.getText().toString());
+                    TemperatureDeviceCounter_TV.setText(tempMsgA);
+                    CountOfDeviceA = Integer.parseInt(TemperatureDeviceCounter_TV.getText().toString());
                     handlerCountData();
                     break;
 
@@ -608,7 +728,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     byte[] readBuffB = (byte[]) message.obj;
                     String tempMsgB = new String(readBuffB, 0, message.arg1);
                     DeviceBCounter.setText(tempMsgB);
-                    CountOfDeviceB = Integer.parseInt(DeviceBCounter.getText().toString());
+                    if (DeviceBCounter.equals("")) {
+
+                    } else {
+                        CountOfDeviceB = Integer.parseInt(DeviceBCounter.getText().toString());
+                        handlerCountData();
+                    }
                     break;
 
                 case STATE_MESSAGE_RECIEVED_FROM_C:
@@ -621,7 +746,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 case STATE_MESSAGE_RECIEVED_FROM_4TH_DEVICE:
                     byte[] readBuffD = (byte[]) message.obj;
                     String tempMsgD = new String(readBuffD, 0, message.arg1);
-                    fourthDeviceTV.setText(tempMsgD);
+                    fourthDeviceClientTV.setText(tempMsgD);
                     break;
 
             }
@@ -640,7 +765,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
         if (i != 0) {
-            ThreadName = DeviceName[i];
+            ThreadName = DeviceNameArray[i];
         }
     }
 
@@ -664,11 +789,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     protected void onPause() {
         super.onPause();
 
-        if (countDownTimer != null) {
-            countDownTimer.cancel();
-            CoundownPause = true;
-        }
-        sensorManager.unregisterListener(this);
+//        if (countDownTimer != null) {
+//            countDownTimer.cancel();
+//            CountDownPause = true;
+//        }
+
 
     }
 
@@ -701,7 +826,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private void startDevice() {
-        DeviceA.setOnClickListener(new View.OnClickListener() {
+        TemperatureDevice.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("MissingPermission")
             @Override
             public void onClick(View view) {
@@ -722,16 +847,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         }
                         arrayAdapter = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, strings);
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                        builder.setTitle("Choose Device A");
+                        builder.setTitle("Choose Device For Temperature");
                         builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int item) {
                                 try {
-                                    sendReceieveA.cancel();
+                                    sendReceiveTemperature.cancel();
                                 } catch (Exception e) {
 
                                 }
-                                ClientAClass connectThreadA = new ClientAClass(paired_device_array[item]);
-                                connectThreadA.start();
+                                ClientTemperature clientTemperature = new ClientTemperature(paired_device_array[item]);
+                                clientTemperature.start();
                             }
                         });
                         AlertDialog alert = builder.create();
@@ -742,7 +867,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }
         });
-        DeviceB.setOnClickListener(new View.OnClickListener() {
+        PressureDevice.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("MissingPermission")
             @Override
             public void onClick(View view) {
@@ -763,16 +888,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         }
                         arrayAdapter = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, strings);
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                        builder.setTitle("Choose Device B");
+                        builder.setTitle("Choose Device For Pressure");
                         builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int item) {
                                 try {
-                                    sendReceieveB.cancel();
+                                    sendReceivePressure.cancel();
                                 } catch (Exception e) {
 
                                 }
-                                ClientBClass connectThreadB = new ClientBClass(paired_device_array[item]);
-                                connectThreadB.start();
+                                ClientPressure clientPressure = new ClientPressure(paired_device_array[item]);
+                                clientPressure.start();
                             }
                         });
                         AlertDialog alert = builder.create();
@@ -783,7 +908,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }
         });
-        DeviceC.setOnClickListener(new View.OnClickListener() {
+        PPMDevice.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("MissingPermission")
             @Override
             public void onClick(View view) {
@@ -804,16 +929,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         }
                         arrayAdapter = new ArrayAdapter(MainActivity.this, androidx.appcompat.R.layout.support_simple_spinner_dropdown_item, strings);
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                        builder.setTitle("Choose Device C");
+                        builder.setTitle("Choose Device For PPM");
                         builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int item) {
                                 try {
-                                    sendReceieveC.cancel();
+                                    sendReceivePPM.cancel();
                                 } catch (Exception e) {
 
                                 }
-                                ClientCClass connectThreadC = new ClientCClass(paired_device_array[item]);
-                                connectThreadC.start();
+                                ClientPPM clientPPM = new ClientPPM(paired_device_array[item]);
+                                clientPPM.start();
                             }
                         });
                         AlertDialog alert = builder.create();
@@ -824,14 +949,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }
         });
-
 
     }
 
+    @Override
+    public void Result(String Result) {
+        CalculationResult = Result;
+    }
 
-    public class ServerClassA extends Thread {
+
+    public class ServerTemperature extends Thread {
         @SuppressLint("MissingPermission")
-        public ServerClassA() {
+        public ServerTemperature() {
             try {
                 serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(APP_NAME, uuidList.get(0));
             } catch (IOException e) {
@@ -856,18 +985,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 } catch (IOException e) {
                     Message message2 = Message.obtain();
-                    message2.what = STATE_CONNECTION_FAILED;
+                    message2.what = STATE_CONNECTION_FAILED_Temperature;
                     handler.sendMessage(message2);
                 }
 
                 if (socket != null) {
 
                     Message message = Message.obtain();
-                    message.what = STATE_CONNECTED;
+                    message.what = STATE_CONNECTED_Temperature;
                     handler.sendMessage(message);
 
-                    sendReceieveA = new SendReceieveA(socket);
-                    sendReceieveA.start();
+                    sendReceiveTemperature = new SendReceiveTemperature(socket);
+                    sendReceiveTemperature.start();
 
                     try {
                         serverSocket.close();
@@ -879,13 +1008,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     }
-
-    private class ClientAClass extends Thread {
+    private class ClientTemperature extends Thread {
         private BluetoothDevice device;
         private BluetoothSocket socket;
 
         @SuppressLint("MissingPermission")
-        public ClientAClass(BluetoothDevice device1) {
+        public ClientTemperature(BluetoothDevice device1) {
             device = device1;
             try {
                 if (bluetoothAdapter.isEnabled()) {
@@ -916,8 +1044,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 DeviceAName = socket.getRemoteDevice().getName();
 
-                SendReceieveA sendRecieveA = new SendReceieveA(socket);
-                sendRecieveA.start();
+                // SendRecieveTemperature sendRecieveTemperature = new SendRecieveTemperature(socket);
+                sendReceiveTemperature = new SendReceiveTemperature(socket);
+                sendReceiveTemperature.start();
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -933,14 +1062,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
     }
-
-    public class SendReceieveA extends Thread {
+    public class SendReceiveTemperature extends Thread {
 
         private final BluetoothSocket bluetoothSocket;
         private final InputStream inputStream;
         private final OutputStream outputStream;
 
-        public SendReceieveA(BluetoothSocket socket) {
+        public SendReceiveTemperature(BluetoothSocket socket) {
             bluetoothSocket = socket;
             InputStream tempIn = null;
             OutputStream tempOut = null;
@@ -970,7 +1098,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     handler.sendMessage(message1);
 
                     Message message2 = Message.obtain();
-                    message2.what = STATE_CONNECTION_FAILED;
+                    message2.what = STATE_CONNECTION_FAILED_Temperature;
                     handler.sendMessage(message2);
                     break;
                 }
@@ -999,9 +1127,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
 
-    public class ServerClassB extends Thread {
+    public class ServerPressure extends Thread {
         @SuppressLint("MissingPermission")
-        public ServerClassB() {
+        public ServerPressure() {
             try {
                 serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(APP_NAME, uuidList.get(1));
             } catch (IOException e) {
@@ -1026,18 +1154,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 } catch (IOException e) {
                     Message message2 = Message.obtain();
-                    message2.what = STATE_CONNECTION_FAILED;
+                    message2.what = STATE_CONNECTION_FAILED_Pressure;
                     handler.sendMessage(message2);
                 }
 
                 if (socket != null) {
 
                     Message message = Message.obtain();
-                    message.what = STATE_CONNECTED;
+                    message.what = STATE_CONNECTED_Pressure;
                     handler.sendMessage(message);
 
-                    sendReceieveB = new SendReceieveB(socket);
-                    sendReceieveB.start();
+                    sendReceivePressure = new SendReceivePressure(socket);
+                    sendReceivePressure.start();
 
                     try {
                         serverSocket.close();
@@ -1049,13 +1177,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     }
-
-    private class ClientBClass extends Thread {
+    private class ClientPressure extends Thread {
         private BluetoothDevice device;
         private BluetoothSocket socket;
 
         @SuppressLint("MissingPermission")
-        public ClientBClass(BluetoothDevice device1) {
+        public ClientPressure(BluetoothDevice device1) {
             device = device1;
             try {
                 if (bluetoothAdapter.isEnabled()) {
@@ -1086,8 +1213,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 DeviceAName = socket.getRemoteDevice().getName();
 
-                SendReceieveB sendRecieveB = new SendReceieveB(socket);
-                sendRecieveB.start();
+                SendReceivePressure sendReceivePressure = new SendReceivePressure(socket);
+                sendReceivePressure.start();
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -1103,14 +1230,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
     }
-
-    public class SendReceieveB extends Thread {
+    public class SendReceivePressure extends Thread {
 
         private final BluetoothSocket bluetoothSocket;
         private final InputStream inputStream;
         private final OutputStream outputStream;
 
-        public SendReceieveB(BluetoothSocket socket) {
+        public SendReceivePressure(BluetoothSocket socket) {
             bluetoothSocket = socket;
             InputStream tempIn = null;
             OutputStream tempOut = null;
@@ -1140,7 +1266,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     handler.sendMessage(message1);
 
                     Message message2 = Message.obtain();
-                    message2.what = STATE_CONNECTION_FAILED;
+                    message2.what = STATE_CONNECTION_FAILED_Pressure;
                     handler.sendMessage(message2);
                     break;
                 }
@@ -1169,9 +1295,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
 
-    public class ServerClassC extends Thread {
+    public class ServerPPM extends Thread {
         @SuppressLint("MissingPermission")
-        public ServerClassC() {
+        public ServerPPM() {
             try {
                 serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(APP_NAME, uuidList.get(2));
             } catch (IOException e) {
@@ -1196,18 +1322,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 } catch (IOException e) {
                     Message message2 = Message.obtain();
-                    message2.what = STATE_CONNECTION_FAILED;
+                    message2.what = STATE_CONNECTION_FAILED_PPM;
                     handler.sendMessage(message2);
                 }
 
                 if (socket != null) {
 
                     Message message = Message.obtain();
-                    message.what = STATE_CONNECTED;
+                    message.what = STATE_CONNECTED_PPM;
                     handler.sendMessage(message);
 
-                    sendReceieveC = new SendReceieveC(socket);
-                    sendReceieveC.start();
+                    sendReceivePPM = new SendReceivePPM(socket);
+                    sendReceivePPM.start();
 
                     try {
                         serverSocket.close();
@@ -1219,13 +1345,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     }
-
-    private class ClientCClass extends Thread {
+    private class ClientPPM extends Thread {
         private BluetoothDevice device;
         private BluetoothSocket socket;
 
         @SuppressLint("MissingPermission")
-        public ClientCClass(BluetoothDevice device1) {
+        public ClientPPM(BluetoothDevice device1) {
             device = device1;
             try {
                 if (bluetoothAdapter.isEnabled()) {
@@ -1256,8 +1381,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 DeviceAName = socket.getRemoteDevice().getName();
 
-                SendReceieveC sendRecieveC = new SendReceieveC(socket);
-                sendRecieveC.start();
+                SendReceivePPM sendReceivePPM = new SendReceivePPM(socket);
+                sendReceivePPM.start();
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -1273,14 +1398,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
     }
-
-    public class SendReceieveC extends Thread {
+    public class SendReceivePPM extends Thread {
 
         private final BluetoothSocket bluetoothSocket;
         private final InputStream inputStream;
         private final OutputStream outputStream;
 
-        public SendReceieveC(BluetoothSocket socket) {
+        public SendReceivePPM(BluetoothSocket socket) {
             bluetoothSocket = socket;
             InputStream tempIn = null;
             OutputStream tempOut = null;
@@ -1310,7 +1434,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     handler.sendMessage(message1);
 
                     Message message2 = Message.obtain();
-                    message2.what = STATE_CONNECTION_FAILED;
+                    message2.what = STATE_CONNECTION_FAILED_PPM;
                     handler.sendMessage(message2);
                     break;
                 }
@@ -1354,9 +1478,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             BluetoothSocket socket = null;
             while (socket == null) {
                 try {
-//                    Message message1 = Message.obtain();
-//                    message1.what = STATE_CONNECTING;
-//                    handler.sendMessage(message1);
+                    Message message1 = Message.obtain();
+                    message1.what = STATE_CONNECTING_Device4;
+                    handler.sendMessage(message1);
 
                     socket = serverSocket.accept();
 
@@ -1372,9 +1496,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 if (socket != null) {
 
-//                    Message message = Message.obtain();
-//                    message.what = STATE_CONNECTED;
-//                    handler.sendMessage(message);
+                    Message message = Message.obtain();
+                    message.what = STATE_CONNECTED_SERVER_FOR_4TH_DEVICE;
+                    handler.sendMessage(message);
 
                     sendReceieve4thDevice = new SendReceieve4thDevice(socket);
                     sendReceieve4thDevice.start();
@@ -1389,7 +1513,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     }
-
     private class Client4thDevice extends Thread {
         private BluetoothDevice device;
         private BluetoothSocket socket;
@@ -1413,15 +1536,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         public void run() {
             bluetoothAdapter.cancelDiscovery();
             try {
-//                Message connecting = Message.obtain();
-//                connecting.what = STATE_CONNECTING_C;
-//                handler.sendMessage(connecting);
+                Message connecting = Message.obtain();
+                connecting.what = STATE_CONNECTING_Clinet_Device4;
+                handler.sendMessage(connecting);
 
                 socket.connect();
 
-//                Message message = Message.obtain();
-//                message.what = STATE_CONNECTED_C;
-//                handler.sendMessage(message);
+                Message message = Message.obtain();
+                message.what = STATE_CONNECTED_CLIENT_FOR_4TH_DEVICE;
+                handler.sendMessage(message);
 
                 DeviceAName = socket.getRemoteDevice().getName();
 
@@ -1442,7 +1565,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
     }
-
     public class SendReceieve4thDevice extends Thread {
 
         private final BluetoothSocket bluetoothSocket;

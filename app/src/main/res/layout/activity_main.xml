@@ -8,19 +8,24 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/Calculations"
+        android:id="@+id/savedValues"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:text="Saved Values"/>
-
-
+    <Button
+        android:id="@+id/Calculations"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Calculated Values"/>
 
     <LinearLayout
         android:id="@+id/serverLL"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
+        android:visibility="visible"
         android:layout_marginTop="50dp"
         android:orientation="vertical">
 
@@ -82,6 +87,7 @@
             android:textColor="@color/black"
             android:textSize="24sp"></TextView>
 
+
         <TextView
             android:id="@+id/counterTV"
             android:layout_width="wrap_content"
@@ -112,7 +118,7 @@
 
         <Button
             android:id="@+id/fourthDeviceClientBTN"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="20dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="4th Device">
@@ -151,7 +157,7 @@
                 android:id="@+id/deviceA"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Device A"
+                android:text="Temperature"
                 android:textColor="@color/white"
                 android:textSize="16sp"></Button>
 
@@ -167,8 +173,8 @@
                 android:id="@+id/deviceACounter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:text="Counter"></TextView>
+                android:hint="Counter"
+                android:layout_marginTop="5dp"></TextView>
         </LinearLayout>
 
         <LinearLayout
@@ -183,7 +189,7 @@
                 android:id="@+id/deviceB"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Device B"
+                android:text="Pressure"
                 android:textColor="@color/white"
                 android:textSize="16sp"></Button>
 
@@ -199,8 +205,8 @@
                 android:id="@+id/deviceBCounter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:text="Counter"></TextView>
+                android:hint="Counter"
+                android:layout_marginTop="5dp"></TextView>
         </LinearLayout>
 
         <LinearLayout
@@ -215,7 +221,7 @@
                 android:id="@+id/deviceC"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Device C"
+                android:text="PPM"
                 android:textColor="@color/white"
                 android:textSize="16sp"></Button>
 
@@ -232,7 +238,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
-                android:text="Counter"></TextView>
+                android:hint="Counter"
+               ></TextView>
         </LinearLayout>
 
     </LinearLayout>
@@ -253,48 +260,13 @@
         android:text="Start Server"
         android:layout_gravity="center"></Button>
 
-      <LinearLayout
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:gravity="center"
-          android:weightSum="4"
-          android:layout_marginTop="100dp"
-          android:orientation="horizontal">
-          <Button
-              android:id="@+id/getTemp"
-              android:layout_width="0dp"
-              android:layout_height="wrap_content"
-              android:layout_marginEnd="5dp"
-              android:layout_weight="1"
-              android:text="Get Temp"
-              />
-          <TextView
-              android:id="@+id/getTempTV"
-              android:text="Temperature"
-              android:layout_weight="1"
-              android:layout_marginLeft="8dp"
-              android:layout_width="0dp"
-              android:layout_height="wrap_content"></TextView>
-          <Button
-              android:id="@+id/getHumidity"
-              android:layout_width="0dp"
-              android:layout_height="wrap_content"
-              android:layout_weight="1"
-              android:text="Get Humidity"
-              />
-          <TextView
-              android:id="@+id/getHumidityTV"
-              android:text="Humidity"
-              android:layout_weight="1"
-              android:layout_marginLeft="8dp"
-              android:layout_width="0dp"
-              android:layout_height="wrap_content"></TextView>
-      </LinearLayout>
-        <ListView
-            android:id="@+id/ListOfSensor"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"></ListView>
-    </LinearLayout>
+        <TextView
+            android:id="@+id/fourthDeviceServerTV"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:layout_gravity="center"/>
 
+    </LinearLayout>
 
 </LinearLayout>

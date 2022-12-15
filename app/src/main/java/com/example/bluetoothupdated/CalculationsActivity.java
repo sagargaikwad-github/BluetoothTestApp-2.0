@@ -10,16 +10,17 @@ import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
 
-public class CalculationsActivity extends AppCompatActivity  {
-    Button Flowrate;
+public class CalculationsActivity extends AppCompatActivity    {
+    Button Save;
     TextInputEditText d, D, C, E, DeltaP, Temperature;
     TextView FlowRateTV;
     SqliteData sqliteData;
     String Round;
     Float finalValue;
+    CaluclationResult caluclationResult;
 
 
-//    public CalculationsActivity(String temp) {
+    //    public CalculationsActivity(String temp) {
 //        this.temp = temp;
 //    }
 
@@ -28,7 +29,7 @@ public class CalculationsActivity extends AppCompatActivity  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_calculations);
 
-        Flowrate = findViewById(R.id.CalculateFlowRate);
+        Save = findViewById(R.id.SaveBTN);
         d = findViewById(R.id.d);
         D = findViewById(R.id.D);
         C = findViewById(R.id.C);
@@ -40,36 +41,102 @@ public class CalculationsActivity extends AppCompatActivity  {
 
         sqliteData=new SqliteData(CalculationsActivity.this);
 
-        Flowrate.setOnClickListener(new View.OnClickListener() {
+        String diameterOfOrifee = sqliteData.get_Diameter_of_Orifice();
+        d.setText(diameterOfOrifee);
+        float DiameterOfOrifee=Float.parseFloat(diameterOfOrifee);
+
+        String upstreamPipeDiameter = sqliteData.get_Upstream_lateral_pipe_diameter();
+        D.setText(upstreamPipeDiameter);
+        Float UpstreamPipeDiameter = Float.parseFloat(upstreamPipeDiameter);
+
+
+        String  coefficientOfDischarge = sqliteData.get_Coefficient_of_discharge();
+        C.setText(coefficientOfDischarge);
+        Float CoefficientOfDischarge =Float.parseFloat(coefficientOfDischarge);
+
+
+        String exponentialFactor = sqliteData.get_Expansion_factor();
+        E.setText(exponentialFactor);
+        Float ExponentialFactor =Float.parseFloat(exponentialFactor);
+
+
+        int DiffrentialPressure = 10;
+        DeltaP.setText(String.valueOf(DiffrentialPressure));
+
+        String temp="27";
+        Temperature.setText(temp);
+
+        Float tempMain=Float.parseFloat(temp);
+        Float val= Float.valueOf(Math.round(tempMain));
+
+        Float density=sqliteData.getDensity(val);
+        //float density=1.3F;
+        Float DensityOfFluid = density;
+
+        Float DiameterRatio = DiameterRatio(DiameterOfOrifee, UpstreamPipeDiameter);
+
+        Float RootOf_OneMinus_DM_RaiseFour = RootOf_OneMinus_DM_RaiseFour(DiameterRatio);
+
+        Float PiByFourMultiplySquareDiamterofOrifee = DiameterOfOrifee(DiameterOfOrifee);
+
+        Float RootOfDensityandPressure = RootOfDensityandPressure(DiffrentialPressure, DensityOfFluid);
+
+        finalValue =CoefficientOfDischarge * RootOf_OneMinus_DM_RaiseFour * ExponentialFactor*PiByFourMultiplySquareDiamterofOrifee * RootOfDensityandPressure;
+
+        Round=String.format("%.6f", finalValue);
+        Toast.makeText(this, Round, Toast.LENGTH_SHORT).show();
+
+
+
+        Save.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Float DiameterOfOrifee = Float.parseFloat(d.getText().toString());
-                Float UpstreamPipeDiameter = Float.parseFloat(D.getText().toString());
-                Float CoefficientOfDischarge = Float.parseFloat(C.getText().toString());
-                Float ExponentialFactor = Float.parseFloat(E.getText().toString());
+                String diameter=d.getText().toString().trim();
+              //Float DiameterOfOrifee = Float.parseFloat(diameter);
+
+                String upstreamPipeDiameter =D.getText().toString().trim();
+               // Float UpstreamPipeDiameter = Float.parseFloat(D.getText().toString());
+
+                String coefficientOfDischarge = C.getText().toString().trim();
+                //Float CoefficientOfDischarge = Float.parseFloat(C.getText().toString());
+
+                String exponentialFactor = E.getText().toString();
+               // Float ExponentialFactor = Float.parseFloat(E.getText().toString());
+
                 int DiffrentialPressure = Integer.parseInt(DeltaP.getText().toString());
 
-               String temp=Temperature.getText().toString();
+                boolean updateValues=sqliteData.updateEquationValues(diameter,upstreamPipeDiameter,coefficientOfDischarge,exponentialFactor);
+                if(updateValues==true)
+                {
+                    Toast.makeText(CalculationsActivity.this, "Updated Successfully", Toast.LENGTH_SHORT).show();
+                }
+                else
+                {
+                    Toast.makeText(CalculationsActivity.this, "Error Occurred", Toast.LENGTH_SHORT).show();
+                }
 
-                Float tempMain=Float.parseFloat(temp);
-                Float val= Float.valueOf(Math.round(tempMain));
-
-                Float density=sqliteData.getDensity(val);
-                Float DensityOfFluid = density;
-
-                Float DiameterRatio = DiameterRatio(DiameterOfOrifee, UpstreamPipeDiameter);
-
-                Float RootOf_OneMinus_DM_RaiseFour = RootOf_OneMinus_DM_RaiseFour(DiameterRatio);
-
-                Float PiByFourMultiplySquareDiamterofOrifee = DiameterOfOrifee(DiameterOfOrifee);
-
-                Float RootOfDensityandPressure = RootOfDensityandPressure(DiffrentialPressure, DensityOfFluid);
-
-               finalValue =CoefficientOfDischarge * RootOf_OneMinus_DM_RaiseFour * PiByFourMultiplySquareDiamterofOrifee * RootOfDensityandPressure;
-
-                Round=String.format("%.6f", finalValue);
-
-                FlowRateTV.setText("Orifiee Mass FlowRate : "+Round +" Kg/s");
+//               String temp=Temperature.getText().toString();
+//
+//                Float tempMain=Float.parseFloat(temp);
+//                Float val= Float.valueOf(Math.round(tempMain));
+//
+//                Float density=sqliteData.getDensity(val);
+//             // Float density=1.176F;
+//                Float DensityOfFluid = density;
+//
+//                Float DiameterRatio = DiameterRatio(DiameterOfOrifee, UpstreamPipeDiameter);
+//
+//                Float RootOf_OneMinus_DM_RaiseFour = RootOf_OneMinus_DM_RaiseFour(DiameterRatio);
+//
+//                Float PiByFourMultiplySquareDiamterofOrifee = DiameterOfOrifee(DiameterOfOrifee);
+//
+//                Float RootOfDensityandPressure = RootOfDensityandPressure(DiffrentialPressure, DensityOfFluid);
+//
+//               finalValue =CoefficientOfDischarge * RootOf_OneMinus_DM_RaiseFour * PiByFourMultiplySquareDiamterofOrifee * RootOfDensityandPressure;
+//
+//                Round=String.format("%.6f", finalValue);
+//
+//                FlowRateTV.setText("Orifiee Mass FlowRate : "+Round +" Kg/s");
 
 
             }
@@ -112,7 +179,6 @@ public class CalculationsActivity extends AppCompatActivity  {
         float ratio = Float.parseFloat(RatioString);
         return ratio;
     }
-
 
 
 }

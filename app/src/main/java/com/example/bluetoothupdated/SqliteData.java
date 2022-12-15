@@ -1,5 +1,6 @@
 package com.example.bluetoothupdated;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -11,7 +12,7 @@ public class SqliteData extends SQLiteOpenHelper {
     public static final int DATABASE_VERSION = 1;
     public static final String DATABASE_NAME = "density.db";
 
-    public SqliteData(@Nullable Context context) {
+    public  SqliteData(@Nullable Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
         SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
 
@@ -97,6 +98,15 @@ public class SqliteData extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL("insert into Density values(50,1.1)");
 
 
+        String qry1 = "Create table EquationValues( Diameter_of_Orifice String ," +
+                "Upstream_lateral_pipe_diameter String," +
+                "Coefficient_of_discharge String," +
+                "Expansion_factor String)";
+        sqLiteDatabase.execSQL(qry1);
+        sqLiteDatabase.execSQL("insert into EquationValues values(0.08,0.1,0.61,1.0)");
+
+
+
     }
 
     @Override
@@ -122,5 +132,84 @@ public class SqliteData extends SQLiteOpenHelper {
 
         }
         return density;
+    }
+
+    public String get_Diameter_of_Orifice() {
+        String DiameterOfOrifice = null;
+        SQLiteDatabase sqLiteDatabase = this.getReadableDatabase();
+        String qry = "Select Diameter_of_Orifice from EquationValues";
+        Cursor cursor = sqLiteDatabase.rawQuery(qry, null);
+        if (cursor.moveToFirst()) {
+            do {
+                String val = cursor.getString(0);
+                DiameterOfOrifice = val;
+            } while (cursor.moveToNext());
+        } else {
+
+        }
+        return DiameterOfOrifice;
+    }
+    public String get_Upstream_lateral_pipe_diameter() {
+        String UpstreamLateralPipeDiameter = null;
+        SQLiteDatabase sqLiteDatabase = this.getReadableDatabase();
+        String qry = "Select Upstream_lateral_pipe_diameter from EquationValues";
+        Cursor cursor = sqLiteDatabase.rawQuery(qry, null);
+        if (cursor.moveToFirst()) {
+            do {
+                String val = cursor.getString(0);
+                UpstreamLateralPipeDiameter = val;
+            } while (cursor.moveToNext());
+        } else {
+
+        }
+        return UpstreamLateralPipeDiameter;
+    }
+    public String get_Coefficient_of_discharge() {
+        String Coefficient_of_discharge = null;
+        SQLiteDatabase sqLiteDatabase = this.getReadableDatabase();
+        String qry = "Select Coefficient_of_discharge from EquationValues";
+        Cursor cursor = sqLiteDatabase.rawQuery(qry, null);
+        if (cursor.moveToFirst()) {
+            do {
+                String val = cursor.getString(0);
+                Coefficient_of_discharge = val;
+            } while (cursor.moveToNext());
+        } else {
+
+        }
+        return Coefficient_of_discharge;
+    }
+    public String get_Expansion_factor() {
+        String Expansion_factor = null;
+        SQLiteDatabase sqLiteDatabase = this.getReadableDatabase();
+        String qry = "Select Expansion_factor from EquationValues";
+        Cursor cursor = sqLiteDatabase.rawQuery(qry, null);
+        if (cursor.moveToFirst()) {
+            do {
+                String val = cursor.getString(0);
+                Expansion_factor = val;
+            } while (cursor.moveToNext());
+        } else {
+
+        }
+        return Expansion_factor;
+    }
+
+
+    public boolean updateEquationValues(String diameterOfOrifee, String upstreamPipeDiameter, String coefficientOfDischarge, String exponentialFactor) {
+        SQLiteDatabase sqLiteDatabase=this.getWritableDatabase();
+        ContentValues cv=new ContentValues();
+        cv.put("Diameter_of_Orifice",diameterOfOrifee);
+        cv.put("Upstream_lateral_pipe_diameter",upstreamPipeDiameter);
+        cv.put("Coefficient_of_discharge",coefficientOfDischarge);
+        cv.put("Expansion_factor",exponentialFactor);
+
+        long res=sqLiteDatabase.update("EquationValues",cv,null,null);
+        if (res == -1) {
+            return false;
+        } else {
+            return true;
+        }
+
     }
 }
