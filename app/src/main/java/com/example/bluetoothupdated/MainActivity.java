@@ -129,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     int CountOfDeviceC = -1;
 
 
-    Button TemperatureDevice, PressureDevice, PPMDevice;
+    Button TemperatureDevice , PressureDevice, PPMDevice;
     //static MainActivity.SendRecieve4thDevice sendRecieve4thDevice;
 
 
